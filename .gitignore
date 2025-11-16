@@ -24,8 +24,6 @@ htmlcov/
 .pyre/
 .tox/
 .env
-.env.*
-*.env
 
 # Django
 backend/db.sqlite3

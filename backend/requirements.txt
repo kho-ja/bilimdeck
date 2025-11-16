@@ -17,6 +17,8 @@ gunicorn==23.0.0
     # via -r requirements.in
 packaging==25.0
     # via gunicorn
+python-dotenv==1.2.1
+    # via -r requirements.in
 sqlparse==0.5.3
     # via django
 tzdata==2025.2
