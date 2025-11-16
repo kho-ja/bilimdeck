@@ -1,0 +1,5 @@
+# Top-level dependencies for Django backend. Pinned versions will be in requirements.txt.
+django
+djangorestframework
+django-cors-headers
+gunicorn
