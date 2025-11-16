@@ -22,6 +22,8 @@ jobs:
   deploy-backend:
     name: Deploy Backend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment: ${{ github.event.inputs.environment || 'production' }}
     
     steps:
@@ -67,6 +69,8 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment: ${{ github.event.inputs.environment || 'production' }}
     
     steps:
@@ -106,6 +110,8 @@ jobs:
   health-check:
     name: Health Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [deploy-backend, deploy-frontend]
     
     steps:
