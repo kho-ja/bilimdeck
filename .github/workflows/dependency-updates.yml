@@ -1,0 +1,106 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run every Monday at 9:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-dependencies:
+    name: Check for Dependency Updates
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install pip-audit for Python security checks
+        run: pip install pip-audit
+
+      - name: Check Python dependencies for vulnerabilities
+        working-directory: ./backend
+        continue-on-error: true
+        run: |
+          pip-audit -r requirements.txt --format json > python-audit.json || true
+          if [ -f python-audit.json ]; then
+            cat python-audit.json
+          fi
+
+      - name: Check npm dependencies for updates
+        working-directory: ./frontend
+        continue-on-error: true
+        run: |
+          npm install
+          npm outdated --json > npm-outdated.json || true
+          if [ -f npm-outdated.json ]; then
+            cat npm-outdated.json
+          fi
+
+      - name: Check npm audit
+        working-directory: ./frontend
+        continue-on-error: true
+        run: |
+          npm audit --json > npm-audit.json || true
+          if [ -f npm-audit.json ]; then
+            cat npm-audit.json
+          fi
+
+      - name: Create issue for updates
+        if: github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## 📦 Weekly Dependency Update Report\n\n';
+            body += 'This is an automated report of dependency updates and security vulnerabilities.\n\n';
+            
+            body += '### Backend (Python)\n';
+            try {
+              const pyAudit = JSON.parse(fs.readFileSync('backend/python-audit.json', 'utf8'));
+              if (pyAudit.vulnerabilities && pyAudit.vulnerabilities.length > 0) {
+                body += `⚠️ Found ${pyAudit.vulnerabilities.length} vulnerabilities\n`;
+              } else {
+                body += '✅ No vulnerabilities found\n';
+              }
+            } catch (e) {
+              body += '✅ No vulnerabilities found\n';
+            }
+            
+            body += '\n### Frontend (npm)\n';
+            try {
+              const npmAudit = JSON.parse(fs.readFileSync('frontend/npm-audit.json', 'utf8'));
+              if (npmAudit.metadata) {
+                const { vulnerabilities } = npmAudit.metadata;
+                body += `⚠️ Vulnerabilities: ${vulnerabilities.total || 0} total\n`;
+              }
+            } catch (e) {
+              body += '✅ No vulnerabilities found\n';
+            }
+            
+            body += '\n### Action Required\n';
+            body += 'Please review and update dependencies as needed.\n';
+            body += '- Run `pip install -U -r requirements.txt` for backend\n';
+            body += '- Run `npm update` for frontend\n';
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔄 Weekly Dependency Update Report - ${new Date().toISOString().split('T')[0]}`,
+              body: body,
+              labels: ['dependencies', 'automated']
+            });

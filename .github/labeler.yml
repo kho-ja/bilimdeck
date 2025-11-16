@@ -1,0 +1,24 @@
+backend:
+  - changed-files:
+    - any-glob-to-any-file: 'backend/**/*'
+
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: 'frontend/**/*'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - 'backend/requirements.txt'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+ci/cd:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**/*'

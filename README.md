@@ -1,5 +1,8 @@
 # BilimDeck
 
+[![CI](https://github.com/kho-ja/bilimdeck/actions/workflows/ci.yml/badge.svg)](https://github.com/kho-ja/bilimdeck/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/kho-ja/bilimdeck/actions/workflows/codeql.yml/badge.svg)](https://github.com/kho-ja/bilimdeck/actions/workflows/codeql.yml)
+
 A full-stack web application with Django REST Framework backend and Next.js + shadcn/ui frontend.
 
 ## Project Structure
@@ -110,7 +113,77 @@ uv run -p .venv python manage.py test
 ✅ Next.js with TypeScript and App Router  
 ✅ Tailwind CSS v4 styling  
 ✅ shadcn/ui component library  
-✅ Full-stack integration demo (ping endpoint)
+✅ Full-stack integration demo (ping endpoint)  
+✅ Comprehensive CI/CD pipeline with GitHub Actions
+
+## CI/CD Pipeline
+
+This project includes a comprehensive CI/CD setup with the following workflows:
+
+### 🔄 Continuous Integration (CI)
+- **Automated Testing**: Runs on every push and pull request
+- **Backend Tests**: Python 3.11 & 3.12 matrix testing
+- **Frontend Tests**: Node.js 20.x & 22.x matrix testing
+- **Code Quality**: Linting with flake8, black, isort (backend) and ESLint (frontend)
+- **Type Checking**: TypeScript type validation
+- **Build Verification**: Ensures the application builds successfully
+- **Integration Tests**: API endpoint health checks
+
+### 🔒 Security Scanning
+- **CodeQL Analysis**: Advanced semantic code analysis for Python and JavaScript/TypeScript
+- **Dependency Review**: Automated security checks for new dependencies in PRs
+- **Weekly Vulnerability Scans**: Scheduled dependency security audits
+- **Security Best Practices**: Bandit for Python and npm audit for JavaScript
+
+### 🏷️ Automation
+- **PR Labeler**: Automatically labels PRs based on changed files (backend/frontend/dependencies/ci-cd)
+- **Dependency Updates**: Weekly automated dependency update reports
+
+### 🚀 Deployment (Template)
+- **Multi-Environment Support**: Staging and production deployment workflows
+- **Health Checks**: Post-deployment validation
+- **Manual & Automated Triggers**: Deploy on release or manually
+
+### Running CI Locally
+
+#### Backend
+```bash
+cd backend
+
+# Install dev dependencies
+pip install black isort flake8 bandit safety
+
+# Format code
+black .
+isort .
+
+# Lint
+flake8 .
+
+# Run tests
+python manage.py test
+
+# Security scan
+bandit -r . -ll
+safety check
+```
+
+#### Frontend
+```bash
+cd frontend
+
+# Lint
+npm run lint
+
+# Type check
+npx tsc --noEmit
+
+# Build
+npm run build
+
+# Security audit
+npm audit
+```
 
 ## Development Notes
 
