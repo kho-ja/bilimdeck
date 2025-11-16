@@ -16,8 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
+    path('', lambda request: JsonResponse({
+        "name": "Bilimdeck API",
+        "status": "ok",
+        "endpoints": [
+            "/api/ping/"
+        ]
+    })),
 ]

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
 
 export default function Home() {
   const [apiStatus, setApiStatus] = useState<string>("");
@@ -10,7 +11,7 @@ export default function Home() {
   const pingBackend = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/ping/");
+      const res = await apiFetch("/api/ping/");
       const data = await res.json();
       setApiStatus(`Backend responded: ${JSON.stringify(data)}`);
     } catch (err) {
