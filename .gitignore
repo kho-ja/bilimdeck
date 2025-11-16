@@ -1,0 +1,56 @@
+# Root .gitignore for BilimDeck
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.build/
+.pytest_cache/
+.coverage*
+htmlcov/
+.mypy_cache/
+.pyre/
+.tox/
+.env
+.env.*
+*.env
+
+# Django
+backend/db.sqlite3
+backend/db.sqlite3-journal
+media/
+staticfiles/
+
+# Virtual envs
+.venv/
+backend/.venv/
+venv/
+ENV/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/.vercel/
+frontend/out/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+*.swp
+*.swo
