@@ -37,7 +37,7 @@ export default function RegisterPage() {
     setError("")
 
     if (formData.password !== formData.password2) {
-      setError("Passwords do not match")
+      setError(t("auth.passwordsMismatch"))
       return
     }
 
@@ -59,7 +59,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">{t("auth.registerTitle")}</CardTitle>
-          <CardDescription>Create your BilimDeck account</CardDescription>
+          <CardDescription>{t("auth.registerDescription")}</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
