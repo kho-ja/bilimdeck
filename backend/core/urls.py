@@ -25,7 +25,12 @@ urlpatterns = [
         "name": "Bilimdeck API",
         "status": "ok",
         "endpoints": [
-            "/api/ping/"
+            "/api/ping/",
+            "/api/auth/register/",
+            "/api/auth/login/",
+            "/api/auth/refresh/",
+            "/api/auth/logout/",
+            "/api/auth/me/",
         ]
     })),
 ]
