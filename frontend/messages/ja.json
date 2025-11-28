@@ -1,0 +1,50 @@
+{
+    "common": {
+        "appName": "BilimDeck",
+        "tagline": "Django + Next.js + shadcn/ui"
+    },
+    "nav": {
+        "home": "ホーム",
+        "dashboard": "ダッシュボード",
+        "login": "ログイン",
+        "logout": "ログアウト"
+    },
+    "auth": {
+        "loginTitle": "ログイン",
+        "loginDescription": "アカウントにアクセスするには認証情報を入力してください",
+        "username": "ユーザー名",
+        "password": "パスワード",
+        "loggingIn": "ログイン中...",
+        "loginButton": "ログイン",
+        "backToHome": "ホームに戻る",
+        "loggedInAs": "ログイン中",
+        "invalidCredentials": "ユーザー名またはパスワードが無効です",
+        "loginSuccess": "ログインに成功しました！",
+        "loginFailed": "ログインに失敗しました",
+        "logoutSuccess": "ログアウトしました"
+    },
+    "dashboard": {
+        "title": "ダッシュボード",
+        "welcome": "おかえりなさい！",
+        "loggedInAs": "ログイン中のユーザー",
+        "email": "メールアドレス",
+        "quickStats": "クイック統計",
+        "activityOverview": "アクティビティの概要",
+        "decksCreated": "作成されたデッキ",
+        "recentActivity": "最近のアクティビティ",
+        "latestActions": "最新のアクション",
+        "noActivity": "最近のアクティビティはありません。"
+    },
+    "home": {
+        "pingBackend": "バックエンドに接続",
+        "pinging": "接続中...",
+        "backendResponded": "バックエンドの応答",
+        "goToDashboard": "ダッシュボードへ"
+    },
+    "theme": {
+        "light": "ライト",
+        "dark": "ダーク",
+        "system": "システム",
+        "toggleTheme": "テーマを切り替え"
+    }
+}

@@ -1,0 +1,50 @@
+{
+    "common": {
+        "appName": "BilimDeck",
+        "tagline": "Django + Next.js + shadcn/ui"
+    },
+    "nav": {
+        "home": "Bosh sahifa",
+        "dashboard": "Boshqaruv paneli",
+        "login": "Kirish",
+        "logout": "Chiqish"
+    },
+    "auth": {
+        "loginTitle": "Kirish",
+        "loginDescription": "Hisobingizga kirish uchun ma'lumotlaringizni kiriting",
+        "username": "Foydalanuvchi nomi",
+        "password": "Parol",
+        "loggingIn": "Kirilmoqda...",
+        "loginButton": "Kirish",
+        "backToHome": "Bosh sahifaga qaytish",
+        "loggedInAs": "Sifatida kirilgan",
+        "invalidCredentials": "Noto'g'ri foydalanuvchi nomi yoki parol",
+        "loginSuccess": "Muvaffaqiyatli kirildi!",
+        "loginFailed": "Kirish muvaffaqiyatsiz",
+        "logoutSuccess": "Muvaffaqiyatli chiqildi"
+    },
+    "dashboard": {
+        "title": "Boshqaruv paneli",
+        "welcome": "Xush kelibsiz!",
+        "loggedInAs": "Siz sifatida kirgansiz",
+        "email": "Elektron pochta",
+        "quickStats": "Tezkor statistika",
+        "activityOverview": "Faoliyatingiz ko'rinishi",
+        "decksCreated": "Yaratilgan kartalar",
+        "recentActivity": "So'nggi faoliyat",
+        "latestActions": "Oxirgi harakatlar",
+        "noActivity": "So'nggi faoliyat yo'q."
+    },
+    "home": {
+        "pingBackend": "Serverni tekshirish",
+        "pinging": "Tekshirilmoqda...",
+        "backendResponded": "Server javobi",
+        "goToDashboard": "Boshqaruv paneliga o'tish"
+    },
+    "theme": {
+        "light": "Yorug'",
+        "dark": "Qorong'i",
+        "system": "Tizim",
+        "toggleTheme": "Mavzuni o'zgartirish"
+    }
+}

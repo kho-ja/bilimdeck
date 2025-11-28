@@ -37,6 +37,7 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 INSTALLED_APPS = [
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
     'api',
     
@@ -159,5 +160,37 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = _csrf_trusted
 
 
-REST_FRAMEWORK = { 'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'] }
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny']
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+# Security Settings
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # False so frontend can read it if needed, or True if using a separate endpoint to fetch it. 
+# For SPA, usually we need to read the CSRF token from the cookie or a meta tag. 
+# Django default is False for CSRF_COOKIE_HTTPONLY (it allows JS to read it).
+# However, the user requested "Prefer secure, HTTP-only cookies for auth". 
+# For the session cookie, it MUST be HTTPOnly.
+# For CSRF, if we make it HTTPOnly, the frontend cannot read it from document.cookie.
+# We will stick to the default for CSRF (False) or provide an endpoint to get it.
+# Let's keep CSRF_COOKIE_HTTPONLY as False (default) to allow reading from JS if necessary, 
+# but strictly enforce SESSION_COOKIE_HTTPONLY = True.
+
+SESSION_COOKIE_HTTPONLY = True
+# CSRF_COOKIE_HTTPONLY = False # Default
