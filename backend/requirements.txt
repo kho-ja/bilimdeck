@@ -25,3 +25,4 @@ tzdata==2025.2
     # via django
 whitenoise==6.11.0
     # via -r requirements.in
+djangorestframework-simplejwt==5.3.1
