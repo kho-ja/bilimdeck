@@ -60,7 +60,10 @@
         "retry": "Retry",
         "hours": "h",
         "minutes": "m",
-        "seconds": "s"
+        "seconds": "s",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "daysAgo": "{days} days ago"
     },
     "home": {
         "pingBackend": "Ping Backend",

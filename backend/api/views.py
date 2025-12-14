@@ -33,7 +33,7 @@ class DashboardSummaryView(views.APIView):
         # Calculate metrics
         # Learning progress: percentage of decks that have been studied at least once
         total_decks = user.decks.count()
-        studied_decks = StudySession.objects.filter(user=user).values('deck').distinct().count()
+        studied_decks = user.decks.filter(study_sessions__user=user).distinct().count()
         learning_progress = (studied_decks / total_decks * 100) if total_decks > 0 else 0
         
         # Average test score

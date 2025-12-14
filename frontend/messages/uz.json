@@ -60,7 +60,10 @@
         "retry": "Qayta urinish",
         "hours": "s",
         "minutes": "d",
-        "seconds": "son"
+        "seconds": "son",
+        "today": "Bugun",
+        "yesterday": "Kecha",
+        "daysAgo": "{days} kun oldin"
     },
     "home": {
         "pingBackend": "Serverni tekshirish",

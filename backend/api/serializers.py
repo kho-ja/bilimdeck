@@ -33,7 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class DeckSerializer(serializers.ModelSerializer):
-    totalCards = serializers.IntegerField(source='cards.count', read_only=True)
+    totalCards = serializers.IntegerField(source='card_count', read_only=True)
     lastStudiedAt = serializers.SerializerMethodField()
     
     class Meta:
