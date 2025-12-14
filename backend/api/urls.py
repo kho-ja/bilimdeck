@@ -10,4 +10,6 @@ urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', views.MeView.as_view(), name='auth_me'),
+    path('dashboard/summary/', views.DashboardSummaryView.as_view(), name='dashboard_summary'),
+    path('decks/', views.DeckListView.as_view(), name='deck_list'),
 ]
