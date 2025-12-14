@@ -127,9 +127,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# WhiteNoise configuration for serving static files in production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Additional directories to search for static files
+STATICFILES_DIRS = []
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -155,7 +160,10 @@ _csrf_trusted = _split_env_list("CSRF_TRUSTED_ORIGINS") or [
     'https://bilimdeck.vercel.app',
 ]
 
-CORS_ALLOWED_ORIGINS = _cors_allowed
+# For production deployment, you can use CORS_ALLOW_ALL_ORIGINS = True
+# or keep specific origins. If you need broader access temporarily:
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
+CORS_ALLOWED_ORIGINS = _cors_allowed if not CORS_ALLOW_ALL_ORIGINS else []
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = _csrf_trusted
 
