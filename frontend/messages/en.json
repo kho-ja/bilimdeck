@@ -45,6 +45,7 @@
         "createNewDeck": "Create New Deck",
         "noDecksYet": "No decks yet",
         "noDecksMessage": "Create your first deck to start learning!",
+        "cardCount": "{count, plural, =0 {0 cards} =1 {1 card} other {# cards}}",
         "cards": "cards",
         "card": "card",
         "study": "Study",

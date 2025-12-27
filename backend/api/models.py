@@ -10,7 +10,7 @@ class Deck(models.Model):
     ]
     
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='decks')
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, blank=False)
     visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='private')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -25,8 +25,8 @@ class Deck(models.Model):
 class Card(models.Model):
     """Individual flashcard in a deck"""
     deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='cards')
-    front_text = models.TextField()
-    back_text = models.TextField()
+    front_text = models.TextField(blank=False)
+    back_text = models.TextField(blank=False)
     color_tag = models.CharField(max_length=50, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -42,7 +42,7 @@ class StudySession(models.Model):
     """Track when user studies a deck"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='study_sessions')
     deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='study_sessions')
-    started_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(auto_now_add=True, db_index=True)
     ended_at = models.DateTimeField(null=True, blank=True)
     duration_seconds = models.IntegerField(default=0)
     
@@ -58,7 +58,7 @@ class TestResult(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='test_results')
     deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='test_results')
     score_percent = models.FloatField()  # 0-100
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     
     class Meta:
         ordering = ['-created_at']

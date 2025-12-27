@@ -45,6 +45,7 @@
         "createNewDeck": "Yangi karta yaratish",
         "noDecksYet": "Hozircha kartalar yo'q",
         "noDecksMessage": "Birinchi kartangizni yaratib o'rganishni boshlang!",
+        "cardCount": "{count, plural, =0 {0 karta} =1 {1 karta} other {# karta}}",
         "cards": "kartalar",
         "card": "karta",
         "study": "O'rganish",

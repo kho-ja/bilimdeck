@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 import { BookOpen, Trophy, Clock, Plus, Eye, Lock } from 'lucide-react';
 import type { DashboardSummary, Deck } from '@/types/dashboard';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
@@ -32,7 +32,12 @@ export default function DashboardPage() {
     },
   });
 
-  // Format study time
+  /**
+   * Format study time in seconds to human-readable format
+   * Shows only the most significant time units for better readability
+   * @param seconds - Total study time in seconds
+   * @returns Formatted time string (e.g., "2h 30m" or "45m" or "30s")
+   */
   const formatStudyTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -41,19 +46,27 @@ export default function DashboardPage() {
     if (hours > 0) {
       return `${hours}${t('hours')} ${minutes}${t('minutes')}`;
     } else if (minutes > 0) {
-      return `${minutes}${t('minutes')} ${secs}${t('seconds')}`;
+      return `${minutes}${t('minutes')}`;
     } else {
       return `${secs}${t('seconds')}`;
     }
   };
 
-  // Format last studied date
+  /**
+   * Format last studied date to relative time string
+   * Handles timezone conversion properly using UTC
+   * @param dateString - ISO date string from API
+   * @returns Relative time string (e.g., "Today", "2 days ago", or formatted date)
+   */
   const formatLastStudied = (dateString?: string | null) => {
     if (!dateString) return t('never');
     
     const date = new Date(dateString);
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
+    
+    // Use UTC timestamps for accurate comparison across timezones
+    const diffMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - 
+                   Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return t('today');
@@ -257,7 +270,7 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <CardDescription>
-                    {deck.totalCards} {deck.totalCards === 1 ? t('card') : t('cards')}
+                    {t('cardCount', { count: deck.totalCards })}
                     {' • '}
                     {deck.visibility === 'public' ? t('public') : t('private')}
                   </CardDescription>

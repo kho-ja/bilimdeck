@@ -104,8 +104,20 @@ class Command(BaseCommand):
                 now = timezone.now()
                 StudySession.objects.bulk_create(
                     [
-                        StudySession(user=user, deck=deck, started_at=now, ended_at=now, duration_seconds=1200),
-                        StudySession(user=user, deck=deck, started_at=now - timezone.timedelta(days=1), ended_at=now - timezone.timedelta(days=1), duration_seconds=900),
+                        StudySession(
+                            user=user,
+                            deck=deck,
+                            started_at=now,
+                            ended_at=now + timezone.timedelta(seconds=1200),
+                            duration_seconds=1200,
+                        ),
+                        StudySession(
+                            user=user,
+                            deck=deck,
+                            started_at=now - timezone.timedelta(days=1),
+                            ended_at=(now - timezone.timedelta(days=1)) + timezone.timedelta(seconds=900),
+                            duration_seconds=900,
+                        ),
                     ]
                 )
                 self.stdout.write(self.style.SUCCESS(f"Added study sessions for {deck.name}"))

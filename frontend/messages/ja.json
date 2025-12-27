@@ -45,6 +45,7 @@
         "createNewDeck": "新しいデッキを作成",
         "noDecksYet": "まだデッキがありません",
         "noDecksMessage": "最初のデッキを作成して学習を始めましょう！",
+        "cardCount": "{count, plural, =0 {0枚} other {#枚}}",
         "cards": "枚",
         "card": "枚",
         "study": "学習",

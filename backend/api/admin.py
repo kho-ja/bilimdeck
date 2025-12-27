@@ -18,11 +18,11 @@ class CardAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at']
     
     def front_text_preview(self, obj):
-        return obj.front_text[:50] + '...' if len(obj.front_text) > 50 else obj.front_text
+        return obj.front_text[:50] + ('...' if len(obj.front_text) > 50 else '')
     front_text_preview.short_description = 'Front Text'
     
     def back_text_preview(self, obj):
-        return obj.back_text[:50] + '...' if len(obj.back_text) > 50 else obj.back_text
+        return obj.back_text[:50] + ('...' if len(obj.back_text) > 50 else '')
     back_text_preview.short_description = 'Back Text'
 
 

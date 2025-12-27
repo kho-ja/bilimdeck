@@ -1,6 +1,6 @@
-from rest_framework import permissions, status, views, generics
+from rest_framework import permissions, views, generics
 from rest_framework.response import Response
-from django.db.models import Count, Sum, Avg
+from django.db.models import Count, Sum, Avg, Max, Q
 from .serializers import UserSerializer, DashboardSummarySerializer, DeckSerializer
 from .models import Deck, StudySession, TestResult
 
@@ -33,7 +33,10 @@ class DashboardSummaryView(views.APIView):
         # Calculate metrics
         # Learning progress: percentage of decks that have been studied at least once
         total_decks = user.decks.count()
-        studied_decks = user.decks.filter(study_sessions__user=user).distinct().count()
+        # Use subquery to efficiently count distinct decks with study sessions
+        studied_decks = user.decks.filter(
+            study_sessions__isnull=False
+        ).distinct().count()
         learning_progress = (studied_decks / total_decks * 100) if total_decks > 0 else 0
         
         # Average test score
@@ -52,8 +55,8 @@ class DashboardSummaryView(views.APIView):
             'totalStudySeconds': total_study_time
         }
         
-        serializer = DashboardSummarySerializer(data)
-        return Response(serializer.data)
+        # Return data directly instead of serializing
+        return Response(data)
 
 
 class DeckListView(generics.ListCreateAPIView):
@@ -64,9 +67,11 @@ class DeckListView(generics.ListCreateAPIView):
     serializer_class = DeckSerializer
     
     def get_queryset(self):
-        # Annotate with card count for efficient query
+        # Annotate with card count and last studied date for efficient query
+        # This prevents N+1 queries when serializing
         return Deck.objects.filter(owner=self.request.user).annotate(
-            card_count=Count('cards')
+            card_count=Count('cards'),
+            last_studied_at=Max('study_sessions__started_at', filter=Q(study_sessions__user=self.request.user))
         )
     
     def perform_create(self, serializer):
