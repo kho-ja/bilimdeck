@@ -1,7 +1,7 @@
 from rest_framework import permissions, views, generics
 from rest_framework.response import Response
 from django.db.models import Count, Sum, Avg, Max, Q
-from .serializers import UserSerializer, DashboardSummarySerializer, DeckSerializer
+from .serializers import UserSerializer, DashboardSummarySerializer, DeckSerializer, DeckCreateSerializer
 from .models import Deck, StudySession, TestResult
 
 
@@ -64,7 +64,12 @@ class DeckListView(generics.ListCreateAPIView):
     List all decks for authenticated user or create a new deck
     """
     permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = DeckSerializer
+    
+    def get_serializer_class(self):
+        # Use DeckCreateSerializer for POST, DeckSerializer for GET
+        if self.request.method == 'POST':
+            return DeckCreateSerializer
+        return DeckSerializer
     
     def get_queryset(self):
         # Annotate with card count and last studied date for efficient query

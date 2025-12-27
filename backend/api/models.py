@@ -11,7 +11,16 @@ class Deck(models.Model):
     
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='decks')
     name = models.CharField(max_length=200, blank=False)
+    description = models.TextField(blank=True, null=True)
     visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='private')
+    
+    # Test mode settings
+    test_shuffle = models.BooleanField(default=True, help_text="Shuffle cards in test mode")
+    test_sequential = models.BooleanField(default=False, help_text="Show cards sequentially in test mode")
+    
+    # Study mode settings (spaced repetition)
+    study_spaced_repetition = models.BooleanField(default=True, help_text="Enable spaced repetition for study mode")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
