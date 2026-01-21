@@ -12,11 +12,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='deck',
-            name='description',
-            field=models.TextField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='deck',
             name='study_spaced_repetition',
             field=models.BooleanField(default=True, help_text='Enable spaced repetition for study mode'),
         ),
