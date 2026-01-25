@@ -86,7 +86,7 @@ export default function DashboardPage() {
         <Button 
           size="lg" 
           className="md:w-auto w-full"
-          onClick={() => router.push('/dashboard/decks/new')}
+          onClick={() => router.push('/decks/new')}
         >
           <Plus className="mr-2 h-4 w-4" />
           {t('createNewDeck')}
@@ -247,7 +247,7 @@ export default function DashboardPage() {
               </svg>
               <h3 className="mb-2 text-lg font-semibold">{t('noDecksYet')}</h3>
               <p className="mb-4 text-sm text-muted-foreground">{t('noDecksMessage')}</p>
-              <Button onClick={() => router.push('/dashboard/decks/new')}>
+              <Button onClick={() => router.push('/decks/new')}>
                 <Plus className="mr-2 h-4 w-4" />
                 {t('createNewDeck')}
               </Button>
@@ -259,7 +259,19 @@ export default function DashboardPage() {
         {!decksLoading && !decksError && decks.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {decks.map((deck) => (
-              <Card key={deck.id} className="transition-shadow hover:shadow-lg">
+              <Card
+                key={deck.id}
+                className="cursor-pointer transition-shadow hover:shadow-lg"
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(`/decks/${deck.id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    router.push(`/decks/${deck.id}`);
+                  }
+                }}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <CardTitle className="line-clamp-2">{deck.name}</CardTitle>
@@ -283,7 +295,10 @@ export default function DashboardPage() {
                     <Button 
                       variant="default" 
                       className="flex-1"
-                      onClick={() => router.push(`/dashboard/study/${deck.id}`)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        router.push(`/decks/${deck.id}/study`);
+                      }}
                     >
                       <BookOpen className="mr-2 h-4 w-4" />
                       {t('study')}
@@ -291,7 +306,10 @@ export default function DashboardPage() {
                     <Button 
                       variant="outline" 
                       className="flex-1"
-                      onClick={() => router.push(`/dashboard/test/${deck.id}`)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        router.push(`/decks/${deck.id}/test`);
+                      }}
                     >
                       <Trophy className="mr-2 h-4 w-4" />
                       {t('test')}

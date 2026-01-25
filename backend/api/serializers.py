@@ -105,3 +105,29 @@ class DashboardSummarySerializer(serializers.Serializer):
     learningProgressPercent = serializers.FloatField()
     averageTestScore = serializers.FloatField()
     totalStudySeconds = serializers.IntegerField()
+
+
+class LeaderboardEntrySerializer(serializers.Serializer):
+    rank = serializers.IntegerField()
+    userDisplayName = serializers.CharField()
+    scorePercent = serializers.FloatField()
+    createdAt = serializers.DateTimeField()
+
+
+class DeckCardPreviewSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    frontText = serializers.CharField()
+    colorTag = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+
+
+class DeckDetailsSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    description = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    visibility = serializers.ChoiceField(choices=Deck.VISIBILITY_CHOICES)
+    totalCards = serializers.IntegerField()
+    participantsCount = serializers.IntegerField()
+    totalStudySeconds = serializers.IntegerField()
+    isOwner = serializers.BooleanField()
+    leaderboard = LeaderboardEntrySerializer(many=True)
+    cardsPreview = DeckCardPreviewSerializer(many=True, required=False)

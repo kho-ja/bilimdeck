@@ -1,8 +1,15 @@
 from rest_framework import permissions, views, generics
 from rest_framework.response import Response
 from django.db.models import Count, Sum, Avg, Max, Q
-from .serializers import UserSerializer, DashboardSummarySerializer, DeckSerializer, DeckCreateSerializer
-from .models import Deck, StudySession, TestResult
+from django.shortcuts import get_object_or_404
+from .serializers import (
+    UserSerializer,
+    DashboardSummarySerializer,
+    DeckSerializer,
+    DeckCreateSerializer,
+    DeckDetailsSerializer,
+)
+from .models import Deck, DeckParticipant, StudySession, TestResult
 
 
 class MeView(views.APIView):
@@ -82,3 +89,67 @@ class DeckListView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         # Automatically set the owner to the current user
         serializer.save(owner=self.request.user)
+
+
+class DeckDetailView(views.APIView):
+    """
+    Return deck details, stats, and leaderboard for a single deck.
+    Private decks are only visible to the owner.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, deck_id):
+        deck = get_object_or_404(Deck.objects.select_related('owner'), pk=deck_id)
+        is_owner = deck.owner_id == request.user.id
+
+        if deck.visibility == 'private' and not is_owner:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        DeckParticipant.objects.get_or_create(deck=deck, user=request.user)
+
+        total_cards = deck.cards.count()
+        participants_count = DeckParticipant.objects.filter(deck=deck).count()
+        total_study_seconds = StudySession.objects.filter(deck=deck).aggregate(
+            total=Sum('duration_seconds')
+        )['total'] or 0
+
+        top_results = (
+            TestResult.objects.filter(deck=deck)
+            .select_related('user')
+            .order_by('-score_percent', 'created_at')[:10]
+        )
+        leaderboard = [
+            {
+                'rank': index + 1,
+                'userDisplayName': result.user.username,
+                'scorePercent': result.score_percent,
+                'createdAt': result.created_at,
+            }
+            for index, result in enumerate(top_results)
+        ]
+
+        cards_preview = [
+            {
+                'id': card.id,
+                'frontText': card.front_text,
+                'colorTag': card.color_tag,
+            }
+            for card in deck.cards.order_by('created_at')[:5]
+        ]
+
+        data = {
+            'id': deck.id,
+            'name': deck.name,
+            'description': deck.description,
+            'visibility': deck.visibility,
+            'totalCards': total_cards,
+            'participantsCount': participants_count,
+            'totalStudySeconds': total_study_seconds,
+            'isOwner': is_owner,
+            'leaderboard': leaderboard,
+            'cardsPreview': cards_preview,
+        }
+
+        serializer = DeckDetailsSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)

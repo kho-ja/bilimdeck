@@ -12,4 +12,5 @@ urlpatterns = [
     path('auth/me/', views.MeView.as_view(), name='auth_me'),
     path('dashboard/summary/', views.DashboardSummaryView.as_view(), name='dashboard_summary'),
     path('decks/', views.DeckListView.as_view(), name='deck_list'),
+    path('decks/<int:deck_id>/', views.DeckDetailView.as_view(), name='deck_detail'),
 ]

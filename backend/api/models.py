@@ -31,6 +31,21 @@ class Deck(models.Model):
         return f"{self.name} ({self.owner.username})"
 
 
+class DeckParticipant(models.Model):
+    """Track users who participate in a deck"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deck_participations')
+    deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='participants')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    total_study_seconds = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['-joined_at']
+        unique_together = ('user', 'deck')
+
+    def __str__(self):
+        return f"{self.user.username} joined {self.deck.name}"
+
+
 class Card(models.Model):
     """Individual flashcard in a deck"""
     deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='cards')
