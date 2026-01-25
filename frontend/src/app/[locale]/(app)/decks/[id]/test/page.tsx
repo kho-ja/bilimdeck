@@ -23,6 +23,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { ArrowLeft, CheckCircle2, Clock, ListOrdered, Shuffle, XCircle } from 'lucide-react';
 
 type TestState = 'loading' | 'start' | 'question' | 'revealed' | 'submitting' | 'results';
@@ -111,7 +113,10 @@ export default function DeckTestPage() {
         toast.error(t('emptyMessage'));
       }
     },
-    onError: () => {
+    onError: (error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('test_start_failed', error);
+      }
       toast.error(t('startError'));
     },
   });
@@ -132,7 +137,10 @@ export default function DeckTestPage() {
       setSummary(data);
       setState('results');
     },
-    onError: () => {
+    onError: (error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('test_finish_failed', error);
+      }
       toast.error(t('finishError'));
       setState('revealed');
     },
@@ -164,7 +172,10 @@ export default function DeckTestPage() {
           setFeedback(data);
           setState('revealed');
         },
-        onError: () => {
+        onError: (error) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('test_answer_failed', error);
+          }
           toast.error(t('answerError'));
           setState('question');
         },
@@ -217,46 +228,36 @@ export default function DeckTestPage() {
 
   if (errorStatus === 403) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('accessDeniedTitle')}</CardTitle>
-          <CardDescription>{t('accessDeniedMessage')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => router.push('/dashboard')}>{t('backToDashboard')}</Button>
-        </CardContent>
-      </Card>
+      <ErrorState
+        title={t('accessDeniedTitle')}
+        description={t('accessDeniedMessage')}
+        actionLabel={t('backToDashboard')}
+        onAction={() => router.push('/dashboard')}
+      />
     );
   }
 
   if (errorStatus === 404) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('notFoundTitle')}</CardTitle>
-          <CardDescription>{t('notFoundMessage')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => router.push('/dashboard')}>{t('backToDashboard')}</Button>
-        </CardContent>
-      </Card>
+      <ErrorState
+        title={t('notFoundTitle')}
+        description={t('notFoundMessage')}
+        actionLabel={t('backToDashboard')}
+        onAction={() => router.push('/dashboard')}
+      />
     );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('errorTitle')}</CardTitle>
-          <CardDescription>{t('errorMessage')}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="outline" onClick={() => refetch()}>
-            {t('retry')}
-          </Button>
-          <Button onClick={() => router.push(`/decks/${deckId}`)}>{t('backToDeck')}</Button>
-        </CardContent>
-      </Card>
+      <ErrorState
+        title={t('errorTitle')}
+        description={t('errorMessage')}
+        retryLabel={t('retry')}
+        onRetry={() => refetch()}
+        actionLabel={t('backToDeck')}
+        onAction={() => router.push(`/decks/${deckId}`)}
+      />
     );
   }
 
@@ -272,18 +273,12 @@ export default function DeckTestPage() {
   if (state === 'start') {
     if (showEmptyState) {
       return (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('emptyTitle')}</CardTitle>
-            <CardDescription>{t('emptyMessage')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" onClick={() => router.push(`/decks/${deckId}`)}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t('backToDeck')}
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title={t('emptyTitle')}
+          description={t('emptyMessage')}
+          actionLabel={t('backToDeck')}
+          onAction={() => router.push(`/decks/${deckId}`)}
+        />
       );
     }
 
@@ -503,6 +498,7 @@ export default function DeckTestPage() {
               {useMultiline ? t('switchToSingleLine') : t('switchToMultiLine')}
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">{t('enterToSubmit')}</p>
         </CardContent>
       </Card>
 

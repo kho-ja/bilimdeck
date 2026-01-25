@@ -18,4 +18,6 @@ urlpatterns = [
     path('decks/<int:deck_id>/test/start/', views.DeckTestStartView.as_view(), name='deck_test_start'),
     path('decks/<int:deck_id>/test/answer/', views.DeckTestAnswerView.as_view(), name='deck_test_answer'),
     path('decks/<int:deck_id>/test/finish/', views.DeckTestFinishView.as_view(), name='deck_test_finish'),
+    path('decks/<int:deck_id>/participation/join/', views.DeckParticipationJoinView.as_view(), name='deck_participation_join'),
+    path('decks/<int:deck_id>/participation/summary/', views.DeckParticipationSummaryView.as_view(), name='deck_participation_summary'),
 ]

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,6 +26,7 @@ import { useTranslations } from 'next-intl';
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('auth');
   const loginSchema = useMemo(() => z.object({
     username: z.string().min(1, t('usernameRequired')),
@@ -59,7 +61,9 @@ export function LoginForm() {
     },
     onSuccess: () => {
       toast.success(t('loginSuccess'));
-      router.push('/dashboard');
+      const returnTo = searchParams.get('returnTo');
+      const safeReturnTo = returnTo && returnTo.startsWith('/') ? returnTo : '/dashboard';
+      router.push(safeReturnTo);
       router.refresh();
     },
     onError: (error: Error) => {

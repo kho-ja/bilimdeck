@@ -1,3 +1,4 @@
+import logging
 import random
 from rest_framework import permissions, views, generics
 from rest_framework.response import Response
@@ -13,6 +14,8 @@ from .serializers import (
     DeckDetailsSerializer,
     StudyQueueResponseSerializer,
     StudyAnswerSerializer,
+    ParticipationSummarySerializer,
+    ParticipationJoinSerializer,
     TestStartSerializer,
     TestStartResponseSerializer,
     TestAnswerSerializer,
@@ -32,9 +35,29 @@ from .models import (
     TestAnswer,
 )
 
+logger = logging.getLogger(__name__)
 
 def normalize_answer(text: str) -> str:
     return " ".join(text.strip().lower().split())
+
+
+def get_user_display_name(user) -> str:
+    full_name = user.get_full_name().strip()
+    if full_name:
+        return full_name
+    if user.username:
+        return user.username
+    if user.email:
+        return user.email.split('@')[0]
+    return "User"
+
+
+def get_deck_or_forbidden(request, deck_id):
+    deck = get_object_or_404(Deck.objects.select_related('owner'), pk=deck_id)
+    is_owner = deck.owner_id == request.user.id
+    if deck.visibility == 'private' and not is_owner:
+        return None, False
+    return deck, is_owner
 
 
 class MeView(views.APIView):
@@ -124,10 +147,8 @@ class DeckDetailView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request, deck_id):
-        deck = get_object_or_404(Deck.objects.select_related('owner'), pk=deck_id)
-        is_owner = deck.owner_id == request.user.id
-
-        if deck.visibility == 'private' and not is_owner:
+        deck, is_owner = get_deck_or_forbidden(request, deck_id)
+        if not deck:
             return Response({'detail': 'Access denied.'}, status=403)
 
         DeckParticipant.objects.get_or_create(deck=deck, user=request.user)
@@ -189,10 +210,8 @@ class DeckStudyQueueView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request, deck_id):
-        deck = get_object_or_404(Deck, pk=deck_id)
-        is_owner = deck.owner_id == request.user.id
-
-        if deck.visibility == 'private' and not is_owner:
+        deck, is_owner = get_deck_or_forbidden(request, deck_id)
+        if not deck:
             return Response({'detail': 'Access denied.'}, status=403)
 
         DeckParticipant.objects.get_or_create(deck=deck, user=request.user)
@@ -246,10 +265,8 @@ class DeckStudyAnswerView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, deck_id):
-        deck = get_object_or_404(Deck, pk=deck_id)
-        is_owner = deck.owner_id == request.user.id
-
-        if deck.visibility == 'private' and not is_owner:
+        deck, is_owner = get_deck_or_forbidden(request, deck_id)
+        if not deck:
             return Response({'detail': 'Access denied.'}, status=403)
 
         serializer = StudyAnswerSerializer(data=request.data)
@@ -299,6 +316,15 @@ class DeckStudyAnswerView(views.APIView):
             duration_seconds=elapsed_seconds,
         )
 
+        logger.info(
+            "study_answer user=%s deck=%s card=%s rating=%s duration=%s",
+            request.user.id,
+            deck.id,
+            card.id,
+            rating,
+            elapsed_seconds,
+        )
+
         if elapsed_seconds:
             DeckParticipant.objects.filter(deck=deck, user=request.user).update(
                 total_study_seconds=F('total_study_seconds') + elapsed_seconds
@@ -321,10 +347,8 @@ class DeckTestStartView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, deck_id):
-        deck = get_object_or_404(Deck, pk=deck_id)
-        is_owner = deck.owner_id == request.user.id
-
-        if deck.visibility == 'private' and not is_owner:
+        deck, is_owner = get_deck_or_forbidden(request, deck_id)
+        if not deck:
             return Response({'detail': 'Access denied.'}, status=403)
 
         DeckParticipant.objects.get_or_create(deck=deck, user=request.user)
@@ -382,10 +406,8 @@ class DeckTestAnswerView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, deck_id):
-        deck = get_object_or_404(Deck, pk=deck_id)
-        is_owner = deck.owner_id == request.user.id
-
-        if deck.visibility == 'private' and not is_owner:
+        deck, is_owner = get_deck_or_forbidden(request, deck_id)
+        if not deck:
             return Response({'detail': 'Access denied.'}, status=403)
 
         serializer = TestAnswerSerializer(data=request.data)
@@ -430,10 +452,8 @@ class DeckTestFinishView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, deck_id):
-        deck = get_object_or_404(Deck, pk=deck_id)
-        is_owner = deck.owner_id == request.user.id
-
-        if deck.visibility == 'private' and not is_owner:
+        deck, is_owner = get_deck_or_forbidden(request, deck_id)
+        if not deck:
             return Response({'detail': 'Access denied.'}, status=403)
 
         serializer = TestFinishSerializer(data=request.data)
@@ -456,6 +476,16 @@ class DeckTestFinishView(views.APIView):
             attempt.score_percent = score_percent
             attempt.save(update_fields=['finished_at', 'total_seconds', 'score_percent'])
             TestResult.objects.create(user=request.user, deck=deck, score_percent=score_percent)
+
+            logger.info(
+                "test_finish user=%s deck=%s attempt=%s score=%s total=%s seconds=%s",
+                request.user.id,
+                deck.id,
+                attempt.id,
+                score_percent,
+                total,
+                total_seconds,
+            )
 
         review = [
             {
@@ -496,3 +526,120 @@ class DeckTestFinishView(views.APIView):
         response_serializer = TestFinishResponseSerializer(data=data)
         response_serializer.is_valid(raise_exception=True)
         return Response(response_serializer.data)
+
+
+class DeckParticipationJoinView(views.APIView):
+    """
+    Join a deck participation (idempotent).
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request, deck_id):
+        deck, is_owner = get_deck_or_forbidden(request, deck_id)
+        if not deck:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        DeckParticipant.objects.get_or_create(deck=deck, user=request.user)
+        serializer = ParticipationJoinSerializer(data={'isParticipant': True})
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
+
+class DeckParticipationSummaryView(views.APIView):
+    """
+    Return participation summary and ranking for a deck.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, deck_id):
+        deck, is_owner = get_deck_or_forbidden(request, deck_id)
+        if not deck:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        participant, _ = DeckParticipant.objects.get_or_create(deck=deck, user=request.user)
+        is_participant = participant is not None
+
+        participants = DeckParticipant.objects.filter(deck=deck).select_related('user')
+        participants_count = participants.count()
+
+        study_stats = {
+            row['user_id']: row
+            for row in StudySession.objects.filter(deck=deck).values('user_id').annotate(
+                total=Sum('duration_seconds'),
+                last=Max('ended_at'),
+            )
+        }
+        test_stats = {
+            row['user_id']: row
+            for row in TestAttempt.objects.filter(
+                deck=deck,
+                finished_at__isnull=False,
+            ).values('user_id').annotate(
+                best=Max('score_percent'),
+                avg=Avg('score_percent'),
+                attempts=Count('id'),
+                last=Max('finished_at'),
+            )
+        }
+
+        total_study_seconds_all = StudySession.objects.filter(deck=deck).aggregate(
+            total=Sum('duration_seconds')
+        )['total'] or 0
+        total_test_attempts_all = TestAttempt.objects.filter(
+            deck=deck,
+            finished_at__isnull=False,
+        ).count()
+
+        ranking_entries = []
+        for participant in participants:
+            user = participant.user
+            study = study_stats.get(user.id, {})
+            test = test_stats.get(user.id, {})
+            total_study_seconds = study.get('total') or 0
+            best_score = test.get('best')
+            avg_score = test.get('avg')
+            attempts_count = test.get('attempts') or 0
+            last_study = study.get('last')
+            last_test = test.get('last')
+            last_active = max(
+                [dt for dt in [last_study, last_test] if dt is not None],
+                default=None,
+            )
+
+            ranking_entries.append({
+                'userId': user.id,
+                'userDisplayName': get_user_display_name(user),
+                'totalStudySeconds': int(total_study_seconds),
+                'bestScorePercent': round(best_score, 1) if best_score is not None else None,
+                'avgScorePercent': round(avg_score, 1) if avg_score is not None else None,
+                'attemptsCount': attempts_count,
+                'lastActiveAt': last_active,
+            })
+
+        def sort_key(entry):
+            best = entry['bestScorePercent']
+            best_sort = best if best is not None else -1
+            last_active = entry['lastActiveAt']
+            last_sort = last_active.timestamp() if last_active else -1
+            return (best is not None, best_sort, entry['totalStudySeconds'], last_sort)
+
+        ranking_entries.sort(key=sort_key, reverse=True)
+        limited_entries = ranking_entries[:50]
+        for index, entry in enumerate(limited_entries, start=1):
+            entry['rank'] = index
+
+        data = {
+            'deckId': deck.id,
+            'deckName': deck.name,
+            'visibility': deck.visibility,
+            'isOwner': is_owner,
+            'isParticipant': is_participant,
+            'participantsCount': participants_count,
+            'totalStudySecondsAll': int(total_study_seconds_all),
+            'totalTestAttemptsAll': total_test_attempts_all,
+            'ranking': limited_entries,
+        }
+
+        serializer = ParticipationSummarySerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)

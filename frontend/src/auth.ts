@@ -179,9 +179,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (isProtectedRoute) {
         if (!isLoggedIn) {
           // If not logged in and on protected route, redirect to login with correct locale
-          let signInUrl = new URL(`${localePrefix}/login`, request.nextUrl);
-          // We can add callbackUrl here if needed, NextAuth usually handles it but explicit is safer with custom redirect
-          signInUrl.searchParams.set("callbackUrl", request.nextUrl.href);
+          const signInUrl = new URL(`${localePrefix}/login`, request.nextUrl);
+          signInUrl.searchParams.set("returnTo", request.nextUrl.pathname + request.nextUrl.search);
           return Response.redirect(signInUrl);
         }
         return true; // Allow access if logged in

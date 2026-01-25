@@ -156,6 +156,33 @@ class StudyAnswerSerializer(serializers.Serializer):
     elapsedSeconds = serializers.IntegerField(required=False, min_value=0)
 
 
+class ParticipationRankingSerializer(serializers.Serializer):
+    rank = serializers.IntegerField()
+    userId = serializers.IntegerField()
+    userDisplayName = serializers.CharField()
+    totalStudySeconds = serializers.IntegerField()
+    bestScorePercent = serializers.FloatField(allow_null=True)
+    avgScorePercent = serializers.FloatField(allow_null=True)
+    attemptsCount = serializers.IntegerField()
+    lastActiveAt = serializers.DateTimeField(allow_null=True)
+
+
+class ParticipationSummarySerializer(serializers.Serializer):
+    deckId = serializers.IntegerField()
+    deckName = serializers.CharField()
+    visibility = serializers.ChoiceField(choices=Deck.VISIBILITY_CHOICES)
+    isOwner = serializers.BooleanField()
+    isParticipant = serializers.BooleanField()
+    participantsCount = serializers.IntegerField()
+    totalStudySecondsAll = serializers.IntegerField()
+    totalTestAttemptsAll = serializers.IntegerField()
+    ranking = ParticipationRankingSerializer(many=True)
+
+
+class ParticipationJoinSerializer(serializers.Serializer):
+    isParticipant = serializers.BooleanField()
+
+
 class TestStartSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=['shuffle', 'sequential'], required=False)
 

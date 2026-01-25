@@ -13,6 +13,8 @@ import type { StudyAnswerPayload, StudyQueueItem, StudyQueueResponse } from '@/t
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { ArrowLeft, Clock, Layers, TimerReset } from 'lucide-react';
 
 type StudyState = 'loading' | 'showFront' | 'showBack' | 'submittingAnswer' | 'completed';
@@ -133,7 +135,10 @@ export default function DeckStudyPage() {
           onSuccess: () => {
             advanceQueue(rating);
           },
-          onError: () => {
+          onError: (error) => {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('study_answer_failed', error);
+            }
             setState('showBack');
           },
         },
@@ -215,35 +220,25 @@ export default function DeckStudyPage() {
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('errorTitle')}</CardTitle>
-          <CardDescription>{t('errorMessage')}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="outline" onClick={() => refetch()}>
-            {t('retry')}
-          </Button>
-          <Button onClick={() => router.push(`/decks/${deckId}`)}>{t('backToDeck')}</Button>
-        </CardContent>
-      </Card>
+      <ErrorState
+        title={t('errorTitle')}
+        description={t('errorMessage')}
+        retryLabel={t('retry')}
+        onRetry={() => refetch()}
+        actionLabel={t('backToDeck')}
+        onAction={() => router.push(`/decks/${deckId}`)}
+      />
     );
   }
 
   if (data && data.total === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('emptyTitle')}</CardTitle>
-          <CardDescription>{t('emptyMessage')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" onClick={() => router.push(`/decks/${deckId}`)}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t('backToDeck')}
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        title={t('emptyTitle')}
+        description={t('emptyMessage')}
+        actionLabel={t('backToDeck')}
+        onAction={() => router.push(`/decks/${deckId}`)}
+      />
     );
   }
 

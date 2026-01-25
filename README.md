@@ -1,6 +1,6 @@
 # BilimDeck
 
-A full-stack web application with Django REST Framework backend and Next.js + shadcn/ui frontend.
+Full-stack flashcard app with Django REST Framework backend and Next.js App Router frontend.
 
 ## Project Structure
 
@@ -24,17 +24,19 @@ BilimDeck/
 
 ### Backend
 
-- **Django 5.2.8** - Web framework
+- **Django 5.2.x** - Web framework
 - **Django REST Framework** - API framework
 - **django-cors-headers** - CORS middleware
+- **SimpleJWT** - JWT auth
 - **uv** - Fast Python package manager
 
 ### Frontend
 
-- **Next.js 15** - React framework with App Router
-- **TypeScript** - Type-safe JavaScript
+- **Next.js 16** - React framework with App Router
+- **NextAuth** - Auth session handling
+- **next-intl** - i18n
 - **Tailwind CSS v4** - Utility-first CSS
-- **shadcn/ui** - Beautiful UI components
+- **shadcn/ui** - UI components
 - **React 19** - UI library
 
 ## Getting Started
@@ -47,7 +49,7 @@ BilimDeck/
    cd backend
    ```
 
-2. The virtual environment is already created with uv. To activate it manually (optional):
+2. Activate the virtual environment (optional):
 
    ```powershell
    .\.venv\Scripts\Activate.ps1
@@ -75,7 +77,7 @@ BilimDeck/
    cd frontend
    ```
 
-2. Install dependencies (if needed):
+2. Install dependencies:
 
    ```powershell
    npm install
@@ -89,13 +91,49 @@ BilimDeck/
 
    The frontend will be available at `http://localhost:3000`
 
-## API Endpoints
+## Environment Variables
 
-- `GET /api/ping/` - Health check endpoint that returns `{"status": "ok"}`
+### Backend (.env)
+
+```
+DEBUG=True
+SECRET_KEY=changeme
+ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+CSRF_TRUSTED_ORIGINS=http://localhost:3000
+```
+
+### Frontend (.env.local)
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+AUTH_SECRET=changeme
+```
+
+## Auth Overview
+
+- Frontend uses NextAuth Credentials Provider.
+- Backend issues JWT access/refresh via `/api/token/`.
+- Frontend stores tokens in NextAuth session and refreshes as needed.
+
+## API Endpoints (Overview)
+
+- `GET /api/ping/`
+- `POST /api/token/`
+- `POST /api/token/refresh/`
+- `GET /api/auth/me/`
+- `GET /api/dashboard/summary/`
+- `GET /api/decks/` / `POST /api/decks/`
+- `GET /api/decks/:id/`
+- `GET /api/decks/:id/study/queue/`
+- `POST /api/decks/:id/study/answer/`
+- `POST /api/decks/:id/test/start/`
+- `POST /api/decks/:id/test/answer/`
+- `POST /api/decks/:id/test/finish/`
+- `GET /api/decks/:id/participation/summary/`
+- `POST /api/decks/:id/participation/join/`
 
 ## Testing
-
-### Backend Tests
 
 Run Django tests:
 
@@ -104,37 +142,18 @@ cd backend
 uv run -p .venv python manage.py test
 ```
 
-## Features
+## Known Limitations / TODO
 
-✅ Django REST API with CORS configured  
-✅ Next.js with TypeScript and App Router  
-✅ Tailwind CSS v4 styling  
-✅ shadcn/ui component library  
-✅ Full-stack integration demo (ping endpoint)
-
-## Development Notes
-
-- **CORS**: Configured to allow `http://localhost:3000` and `http://127.0.0.1:3000`
-- **CSRF**: Trusted origins configured for local development
-- **Hot Reload**: Both servers support hot reloading during development
-
-## Next Steps
-
-1. Add authentication (JWT or session-based)
-2. Create memory card models and CRUD endpoints
-3. Build card UI components with shadcn/ui
-4. Add database migrations for card data
-5. Implement card flip animations
-6. Add user management
+- TODO: Improve test grading (fuzzy match, multiple choice).
+- TODO: Add study/test analytics dashboards.
+- TODO: Add invite system for private decks.
+- TODO: Add pagination for large participant lists.
 
 ## Useful Commands
 
 ### Backend
 
 ```powershell
-# Create new Django app
-uv run -p .venv python manage.py startapp <app_name>
-
 # Make migrations
 uv run -p .venv python manage.py makemigrations
 
@@ -145,9 +164,6 @@ uv run -p .venv python manage.py createsuperuser
 ### Frontend
 
 ```powershell
-# Add shadcn components
-npx shadcn@latest add <component>
-
 # Build for production
 npm run build
 

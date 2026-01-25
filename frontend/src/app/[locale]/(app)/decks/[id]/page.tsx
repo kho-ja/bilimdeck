@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/error-state';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ArrowLeft, BookOpen, Clock, Layers, Pencil, Share2, Trophy, Users } from 'lucide-react';
 
 const formatDuration = (seconds: number, hoursLabel: string, minutesLabel: string, secondsLabel: string) => {
@@ -94,46 +96,36 @@ export default function DeckDetailsPage() {
 
   if (errorStatus === 403) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('accessDeniedTitle')}</CardTitle>
-          <CardDescription>{t('accessDeniedMessage')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => router.push('/dashboard')}>{t('backToDashboard')}</Button>
-        </CardContent>
-      </Card>
+      <ErrorState
+        title={t('accessDeniedTitle')}
+        description={t('accessDeniedMessage')}
+        actionLabel={t('backToDashboard')}
+        onAction={() => router.push('/dashboard')}
+      />
     );
   }
 
   if (errorStatus === 404) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('notFoundTitle')}</CardTitle>
-          <CardDescription>{t('notFoundMessage')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => router.push('/dashboard')}>{t('backToDashboard')}</Button>
-        </CardContent>
-      </Card>
+      <ErrorState
+        title={t('notFoundTitle')}
+        description={t('notFoundMessage')}
+        actionLabel={t('backToDashboard')}
+        onAction={() => router.push('/dashboard')}
+      />
     );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('errorTitle')}</CardTitle>
-          <CardDescription>{t('errorMessage')}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="outline" onClick={() => refetch()}>
-            {t('retry')}
-          </Button>
-          <Button onClick={() => router.push('/dashboard')}>{t('backToDashboard')}</Button>
-        </CardContent>
-      </Card>
+      <ErrorState
+        title={t('errorTitle')}
+        description={t('errorMessage')}
+        retryLabel={t('retry')}
+        onRetry={() => refetch()}
+        actionLabel={t('backToDashboard')}
+        onAction={() => router.push('/dashboard')}
+      />
     );
   }
 
@@ -242,7 +234,11 @@ export default function DeckDetailsPage() {
           </CardHeader>
           <CardContent>
             {deck.leaderboard.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('leaderboardEmpty')}</p>
+              <EmptyState
+                title={t('leaderboardEmpty')}
+                description={t('leaderboardDesc')}
+                variant="plain"
+              />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -307,7 +303,11 @@ export default function DeckDetailsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">{t('noCards')}</p>
+            <EmptyState
+              title={t('noCards')}
+              description={t('cardsPreviewDesc')}
+              variant="plain"
+            />
           )}
         </CardContent>
       </Card>

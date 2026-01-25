@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import (
     Deck,
+    DeckParticipant,
     Card,
     CardReview,
     StudyEvent,
@@ -374,3 +375,53 @@ class TestModeTests(APITestCase):
         self.assertEqual(finish_response.data['scorePercent'], 50.0)
         self.assertEqual(len(finish_response.data['review']), 2)
         self.assertGreaterEqual(len(finish_response.data['leaderboard']), 1)
+
+
+class ParticipationTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username='owner', email='owner@example.com', password='testpass123')
+        self.other_user = User.objects.create_user(username='other', email='other@example.com', password='testpass123')
+        self.private_deck = Deck.objects.create(owner=self.owner, name='Private Deck', visibility='private')
+        self.public_deck = Deck.objects.create(owner=self.owner, name='Public Deck', visibility='public')
+
+    def test_private_deck_summary_blocks_non_owner(self):
+        url = reverse('deck_participation_summary', args=[self.private_deck.id])
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_public_summary_auto_joins(self):
+        url = reverse('deck_participation_summary', args=[self.public_deck.id])
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['isParticipant'])
+        self.assertEqual(response.data['participantsCount'], 1)
+
+    def test_join_endpoint_is_idempotent(self):
+        url = reverse('deck_participation_join', args=[self.public_deck.id])
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(DeckParticipant.objects.filter(deck=self.public_deck, user=self.other_user).count(), 1)
+
+    def test_summary_includes_stats(self):
+        StudySession.objects.create(user=self.owner, deck=self.public_deck, duration_seconds=120)
+        TestAttempt.objects.create(
+            user=self.owner,
+            deck=self.public_deck,
+            mode='sequential',
+            total_questions=1,
+            finished_at=timezone.now(),
+            score_percent=88.5,
+            total_seconds=30,
+        )
+        url = reverse('deck_participation_summary', args=[self.public_deck.id])
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['totalStudySecondsAll'], 120)
+        self.assertEqual(response.data['totalTestAttemptsAll'], 1)
+        self.assertEqual(response.data['ranking'][0]['bestScorePercent'], 88.5)
