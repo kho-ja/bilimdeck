@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios';
-import { getSession } from 'next-auth/react';
+import { getSession, signOut } from 'next-auth/react';
 import { auth } from '@/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -48,12 +48,33 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Handle 401 Unauthorized
-    if (error.response?.status === 401) {
-      // Token expired or invalid - could trigger re-authentication
-      console.error('Unauthorized access - token may be expired');
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
+
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const session = await getSession();
+        const newToken = (session as any)?.accessToken;
+
+        if (newToken) {
+          originalRequest.headers = {
+            ...(originalRequest.headers || {}),
+            Authorization: `Bearer ${newToken}`,
+          };
+          return apiClient(originalRequest);
+        }
+      } catch {
+        // Fall through to sign-out below
+      }
+
+      if (typeof window !== 'undefined') {
+        await signOut({ callbackUrl: '/login' });
+      }
     }
+
     return Promise.reject(error);
   }
 );
