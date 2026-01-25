@@ -1,13 +1,16 @@
 {
     "common": {
         "appName": "BilimDeck",
-        "tagline": "Django + Next.js + shadcn/ui"
+        "tagline": "Django + Next.js + shadcn/ui",
+        "appDescription": "Learn with flashcards",
+        "userFallback": "User"
     },
     "nav": {
         "home": "Home",
         "dashboard": "Dashboard",
         "login": "Login",
-        "logout": "Log out"
+        "logout": "Log out",
+        "switchLanguage": "Switch language"
     },
     "auth": {
         "loginTitle": "Login",
@@ -21,7 +24,9 @@
         "invalidCredentials": "Invalid username or password",
         "loginSuccess": "Login successful!",
         "loginFailed": "Login failed",
-        "logoutSuccess": "Logged out successfully"
+        "logoutSuccess": "Logged out successfully",
+        "usernameRequired": "Username is required",
+        "passwordRequired": "Password is required"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -116,7 +121,18 @@
         "backTextPlaceholder": "Enter the answer or explanation",
         "colorTag": "Color Tag",
         "deckCreatedSuccess": "Deck created successfully!",
-        "deckCreatedError": "Failed to create deck. Please try again."
+        "deckCreatedError": "Failed to create deck. Please try again.",
+        "deckNameMin": "Deck name must be at least 3 characters",
+        "deckNameMax": "Deck name must be 200 characters or fewer",
+        "frontTextRequired": "Front text is required",
+        "backTextRequired": "Back text is required",
+        "shuffleDisabledMessage": "Shuffle must be OFF when Sequential is ON",
+        "colorBlue": "Blue",
+        "colorGreen": "Green",
+        "colorYellow": "Yellow",
+        "colorRed": "Red",
+        "colorPurple": "Purple",
+        "colorGray": "Gray"
     },
     "deckDetails": {
         "backToDashboard": "Back to Dashboard",
@@ -161,5 +177,25 @@
         "hours": "h",
         "minutes": "m",
         "seconds": "s"
+    },
+    "study": {
+        "backToDeck": "Back to deck",
+        "progressLabel": "Progress",
+        "timerLabel": "Timer",
+        "revealHint": "Press Space or tap to reveal",
+        "again": "Again",
+        "hard": "Hard",
+        "easy": "Easy",
+        "emptyTitle": "No cards to study",
+        "emptyMessage": "Add cards or check back later.",
+        "errorTitle": "Unable to load study queue",
+        "errorMessage": "Please try again.",
+        "retry": "Retry",
+        "sessionCompleteTitle": "Session complete",
+        "sessionCompleteMessage": "You reviewed {count} cards.",
+        "timeSpent": "Time spent",
+        "studyAgain": "Study again",
+        "frontLabel": "Front",
+        "backLabel": "Back"
     }
 }

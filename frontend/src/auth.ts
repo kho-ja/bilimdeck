@@ -155,7 +155,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       // Check if we are on a protected route
       const isProtectedRoute =
-        pathname.includes("/dashboard") || pathname.includes("/app");
+        pathname.includes("/dashboard") ||
+        pathname.includes("/app") ||
+        pathname.includes("/decks");
 
       // Helper to construct localized URL respecting 'as-needed' strategy
       // We assume 'en' is default and 'as-needed' is used, so we don't prefix 'en'

@@ -1,15 +1,27 @@
 from rest_framework import permissions, views, generics
 from rest_framework.response import Response
-from django.db.models import Count, Sum, Avg, Max, Q
+from django.db.models import Count, Sum, Avg, Max, Q, F
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from datetime import timedelta
 from .serializers import (
     UserSerializer,
     DashboardSummarySerializer,
     DeckSerializer,
     DeckCreateSerializer,
     DeckDetailsSerializer,
+    StudyQueueResponseSerializer,
+    StudyAnswerSerializer,
 )
-from .models import Deck, DeckParticipant, StudySession, TestResult
+from .models import (
+    Deck,
+    DeckParticipant,
+    Card,
+    CardReview,
+    StudySession,
+    StudyEvent,
+    TestResult,
+)
 
 
 class MeView(views.APIView):
@@ -153,3 +165,135 @@ class DeckDetailView(views.APIView):
         serializer = DeckDetailsSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
+
+
+class DeckStudyQueueView(views.APIView):
+    """
+    Return a study queue for the deck based on due cards.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, deck_id):
+        deck = get_object_or_404(Deck, pk=deck_id)
+        is_owner = deck.owner_id == request.user.id
+
+        if deck.visibility == 'private' and not is_owner:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        DeckParticipant.objects.get_or_create(deck=deck, user=request.user)
+
+        now = timezone.now()
+        due_reviews = (
+            CardReview.objects.filter(deck=deck, user=request.user, next_due_at__lte=now)
+            .select_related('card')
+            .order_by('next_due_at')
+        )
+        due_cards = [review.card for review in due_reviews]
+        review_map = {review.card_id: review for review in due_reviews}
+
+        reviewed_card_ids = CardReview.objects.filter(
+            deck=deck,
+            user=request.user,
+        ).values_list('card_id', flat=True)
+
+        remaining_slots = max(0, 10 - len(due_cards))
+        new_cards = list(
+            deck.cards.exclude(id__in=reviewed_card_ids).order_by('created_at')[:remaining_slots]
+        )
+
+        items = due_cards + new_cards
+
+        data = {
+            'deckId': deck.id,
+            'deckName': deck.name,
+            'total': len(items),
+            'items': [
+                {
+                    'cardId': card.id,
+                    'frontText': card.front_text,
+                    'backText': card.back_text,
+                    'colorTag': card.color_tag,
+                    'dueAt': review_map.get(card.id).next_due_at if review_map.get(card.id) else None,
+                }
+                for card in items
+            ],
+        }
+
+        serializer = StudyQueueResponseSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
+
+class DeckStudyAnswerView(views.APIView):
+    """
+    Accept an answer rating and update spaced repetition data.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request, deck_id):
+        deck = get_object_or_404(Deck, pk=deck_id)
+        is_owner = deck.owner_id == request.user.id
+
+        if deck.visibility == 'private' and not is_owner:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        serializer = StudyAnswerSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        card_id = serializer.validated_data['cardId']
+        rating = serializer.validated_data['rating']
+        elapsed_seconds = serializer.validated_data.get('elapsedSeconds') or 0
+
+        card = get_object_or_404(Card, pk=card_id, deck=deck)
+        DeckParticipant.objects.get_or_create(deck=deck, user=request.user)
+
+        interval_days = 0
+        if rating == 'hard':
+            interval_days = 1
+        elif rating == 'easy':
+            interval_days = 4
+
+        now = timezone.now()
+        if rating == 'again':
+            next_due_at = now + timedelta(minutes=5)
+        else:
+            next_due_at = now + timedelta(days=interval_days)
+
+        review, _ = CardReview.objects.get_or_create(
+            user=request.user,
+            card=card,
+            defaults={'deck': deck},
+        )
+        review.deck = deck
+        review.last_rating = rating
+        review.last_reviewed_at = now
+        review.next_due_at = next_due_at
+        review.interval_days = interval_days
+        review.save(update_fields=[
+            'deck',
+            'last_rating',
+            'last_reviewed_at',
+            'next_due_at',
+            'interval_days',
+        ])
+
+        StudyEvent.objects.create(
+            user=request.user,
+            deck=deck,
+            card=card,
+            rating=rating,
+            duration_seconds=elapsed_seconds,
+        )
+
+        if elapsed_seconds:
+            DeckParticipant.objects.filter(deck=deck, user=request.user).update(
+                total_study_seconds=F('total_study_seconds') + elapsed_seconds
+            )
+            StudySession.objects.create(
+                user=request.user,
+                deck=deck,
+                started_at=now - timedelta(seconds=elapsed_seconds),
+                ended_at=now,
+                duration_seconds=elapsed_seconds,
+            )
+
+        return Response({'nextDueAt': next_due_at})

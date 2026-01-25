@@ -131,3 +131,24 @@ class DeckDetailsSerializer(serializers.Serializer):
     isOwner = serializers.BooleanField()
     leaderboard = LeaderboardEntrySerializer(many=True)
     cardsPreview = DeckCardPreviewSerializer(many=True, required=False)
+
+
+class StudyQueueItemSerializer(serializers.Serializer):
+    cardId = serializers.IntegerField()
+    frontText = serializers.CharField()
+    backText = serializers.CharField()
+    colorTag = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    dueAt = serializers.DateTimeField(allow_null=True, required=False)
+
+
+class StudyQueueResponseSerializer(serializers.Serializer):
+    deckId = serializers.IntegerField()
+    deckName = serializers.CharField()
+    total = serializers.IntegerField()
+    items = StudyQueueItemSerializer(many=True)
+
+
+class StudyAnswerSerializer(serializers.Serializer):
+    cardId = serializers.IntegerField()
+    rating = serializers.ChoiceField(choices=['again', 'hard', 'easy'])
+    elapsedSeconds = serializers.IntegerField(required=False, min_value=0)

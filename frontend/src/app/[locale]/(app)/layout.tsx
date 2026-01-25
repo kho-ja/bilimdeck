@@ -6,9 +6,12 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Link } from '@/i18n/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslations } from 'next-intl';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
+  const tNav = useTranslations('nav')
+  const tCommon = useTranslations('common')
 
   // Middleware handles redirects, so we just show loading state
   if (status === 'loading') {
@@ -44,11 +47,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-6">
             <Link href="/" className="font-bold text-lg hover:text-primary transition-colors">
-              BilimDeck
+              {tCommon('appName')}
             </Link>
             <nav className="flex items-center gap-4 text-sm">
               <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-                Dashboard
+                {tNav('dashboard')}
               </Link>
             </nav>
           </div>

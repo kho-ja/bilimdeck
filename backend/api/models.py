@@ -31,6 +31,13 @@ class Deck(models.Model):
         return f"{self.name} ({self.owner.username})"
 
 
+RATING_CHOICES = [
+    ('again', 'Again'),
+    ('hard', 'Hard'),
+    ('easy', 'Easy'),
+]
+
+
 class DeckParticipant(models.Model):
     """Track users who participate in a deck"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deck_participations')
@@ -62,6 +69,25 @@ class Card(models.Model):
         return f"Card in {self.deck.name}"
 
 
+class CardReview(models.Model):
+    """Track spaced repetition data for a card and user."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='card_reviews')
+    deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='card_reviews')
+    card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='card_reviews')
+    last_rating = models.CharField(max_length=10, choices=RATING_CHOICES, blank=True, null=True)
+    last_reviewed_at = models.DateTimeField(blank=True, null=True)
+    next_due_at = models.DateTimeField(blank=True, null=True, db_index=True)
+    interval_days = models.IntegerField(default=0)
+    ease_factor = models.FloatField(default=2.5)
+
+    class Meta:
+        ordering = ['next_due_at', 'id']
+        unique_together = ('user', 'card')
+
+    def __str__(self):
+        return f"{self.user.username} review {self.card.id}"
+
+
 class StudySession(models.Model):
     """Track when user studies a deck"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='study_sessions')
@@ -89,3 +115,19 @@ class TestResult(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.deck.name}: {self.score_percent}%"
+
+
+class StudyEvent(models.Model):
+    """Record a single study answer event."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='study_events')
+    deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='study_events')
+    card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='study_events')
+    rating = models.CharField(max_length=10, choices=RATING_CHOICES)
+    duration_seconds = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} {self.card.id} {self.rating}"

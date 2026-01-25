@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
@@ -20,45 +20,43 @@ import { X, Plus, Save, ArrowLeft } from 'lucide-react';
 
 // Card color options
 const COLOR_OPTIONS = [
-  { value: 'blue', label: 'Blue', class: 'bg-blue-100 dark:bg-blue-900' },
-  { value: 'green', label: 'Green', class: 'bg-green-100 dark:bg-green-900' },
-  { value: 'yellow', label: 'Yellow', class: 'bg-yellow-100 dark:bg-yellow-900' },
-  { value: 'red', label: 'Red', class: 'bg-red-100 dark:bg-red-900' },
-  { value: 'purple', label: 'Purple', class: 'bg-purple-100 dark:bg-purple-900' },
-  { value: 'gray', label: 'Gray', class: 'bg-gray-100 dark:bg-gray-900' },
+  { value: 'blue', labelKey: 'colorBlue', class: 'bg-blue-100 dark:bg-blue-900' },
+  { value: 'green', labelKey: 'colorGreen', class: 'bg-green-100 dark:bg-green-900' },
+  { value: 'yellow', labelKey: 'colorYellow', class: 'bg-yellow-100 dark:bg-yellow-900' },
+  { value: 'red', labelKey: 'colorRed', class: 'bg-red-100 dark:bg-red-900' },
+  { value: 'purple', labelKey: 'colorPurple', class: 'bg-purple-100 dark:bg-purple-900' },
+  { value: 'gray', labelKey: 'colorGray', class: 'bg-gray-100 dark:bg-gray-900' },
 ];
-
-// Form validation schema
-const deckSchema = z.object({
-  name: z.string().min(3, 'Deck name must be at least 3 characters').max(200),
-  description: z.string().optional(),
-  visibility: z.enum(['public', 'private']),
-  test_shuffle: z.boolean(),
-  test_sequential: z.boolean(),
-  study_spaced_repetition: z.boolean(),
-  cards: z.array(z.object({
-    front_text: z.string().min(1, 'Front text is required'),
-    back_text: z.string().min(1, 'Back text is required'),
-    color_tag: z.string().optional(),
-  })).min(0),
-}).refine((data) => {
-  // If sequential is true, shuffle must be false
-  if (data.test_sequential && data.test_shuffle) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Shuffle must be OFF when Sequential is ON',
-  path: ['test_shuffle'],
-});
-
-type DeckFormData = z.infer<typeof deckSchema>;
 
 export default function NewDeckPage() {
   const t = useTranslations('newDeck');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isDirty, setIsDirty] = useState(false);
+
+  const deckSchema = useMemo(() => z.object({
+    name: z.string().min(3, t('deckNameMin')).max(200, t('deckNameMax')),
+    description: z.string().optional(),
+    visibility: z.enum(['public', 'private']),
+    test_shuffle: z.boolean(),
+    test_sequential: z.boolean(),
+    study_spaced_repetition: z.boolean(),
+    cards: z.array(z.object({
+      front_text: z.string().min(1, t('frontTextRequired')),
+      back_text: z.string().min(1, t('backTextRequired')),
+      color_tag: z.string().optional(),
+    })).min(0),
+  }).refine((data) => {
+    if (data.test_sequential && data.test_shuffle) {
+      return false;
+    }
+    return true;
+  }, {
+    message: t('shuffleDisabledMessage'),
+    path: ['test_shuffle'],
+  }), [t]);
+
+  type DeckFormData = z.infer<typeof deckSchema>;
 
   const {
     register,
@@ -351,7 +349,8 @@ export default function NewDeckPage() {
                                 ? 'border-primary ring-2 ring-primary ring-offset-2'
                                 : 'border-transparent'
                             }`}
-                            title={color.label}
+                            title={t(color.labelKey)}
+                            aria-label={t(color.labelKey)}
                           />
                         ))}
                       </div>

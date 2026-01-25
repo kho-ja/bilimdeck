@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,19 +21,17 @@ import { Input } from '@/components/ui/input';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Zod schema for form validation
-const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-
 import { useTranslations } from 'next-intl';
 
 export function LoginForm() {
   const router = useRouter();
   const t = useTranslations('auth');
+  const loginSchema = useMemo(() => z.object({
+    username: z.string().min(1, t('usernameRequired')),
+    password: z.string().min(1, t('passwordRequired')),
+  }), [t]);
+
+  type LoginFormData = z.infer<typeof loginSchema>;
 
   // React Hook Form setup with shadcn Form
   const form = useForm<LoginFormData>({

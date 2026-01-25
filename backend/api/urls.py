@@ -13,4 +13,6 @@ urlpatterns = [
     path('dashboard/summary/', views.DashboardSummaryView.as_view(), name='dashboard_summary'),
     path('decks/', views.DeckListView.as_view(), name='deck_list'),
     path('decks/<int:deck_id>/', views.DeckDetailView.as_view(), name='deck_detail'),
+    path('decks/<int:deck_id>/study/queue/', views.DeckStudyQueueView.as_view(), name='deck_study_queue'),
+    path('decks/<int:deck_id>/study/answer/', views.DeckStudyAnswerView.as_view(), name='deck_study_answer'),
 ]

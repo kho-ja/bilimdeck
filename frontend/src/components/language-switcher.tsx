@@ -21,13 +21,7 @@ export function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const t = useTranslations('common'); // Assuming 'Switch language' might be in common or nav, but currently it's sr-only. 
-  // Actually, let's use a generic label if not in json, or add it. 
-  // Checking en.json, I don't see "Switch language". I'll add it to 'nav' or just use hardcoded for sr-only if not critical, 
-  // but better to be consistent. I'll use 'nav.switchLanguage' and add it to en.json later if needed, 
-  // or just keep it hardcoded for now as it wasn't in the original plan to add every single sr-only string to json.
-  // Wait, I should be thorough. I'll use "Switch language" hardcoded for now or check if I can add it.
-  // The user wants "next intl to integrate with other pages".
+  const t = useTranslations('nav');
 
   const switchLanguage = (newLocale: string) => {
     router.replace(pathname, { locale: newLocale });
@@ -38,7 +32,7 @@ export function LanguageSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
           <Languages className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Switch language</span>
+          <span className="sr-only">{t('switchLanguage')}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

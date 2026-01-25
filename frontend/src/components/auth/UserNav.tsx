@@ -14,18 +14,23 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LogOut, User } from "lucide-react"
 import { toast } from "sonner"
 import { Link } from "@/i18n/navigation"
+import { useTranslations } from "next-intl"
 
 export function UserNav() {
   const { data: session } = useSession()
+  const tNav = useTranslations("nav")
+  const tAuth = useTranslations("auth")
+  const tCommon = useTranslations("common")
 
   if (!session?.user) return null
 
-  const username = session.user.username || session.user.email || 'User'
+  const username =
+    session.user.username || session.user.email || tCommon("userFallback")
   const initials = username.substring(0, 2).toUpperCase()
 
   const handleLogout = async () => {
     await signOut({ redirect: true, callbackUrl: '/login' })
-    toast.success('Logged out successfully')
+    toast.success(tAuth("logoutSuccess"))
   }
 
   return (
@@ -54,13 +59,13 @@ export function UserNav() {
         <DropdownMenuItem asChild>
           <Link href="/dashboard" className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
-            <span>Dashboard</span>
+            <span>{tNav("dashboard")}</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{tNav("logout")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

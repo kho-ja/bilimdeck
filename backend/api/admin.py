@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Deck, DeckParticipant, Card, StudySession, TestResult
+from .models import Deck, DeckParticipant, Card, CardReview, StudySession, StudyEvent, TestResult
 
 
 @admin.register(Deck)
@@ -48,3 +48,19 @@ class DeckParticipantAdmin(admin.ModelAdmin):
     list_filter = ['joined_at']
     search_fields = ['user__username', 'deck__name']
     readonly_fields = ['joined_at']
+
+
+@admin.register(CardReview)
+class CardReviewAdmin(admin.ModelAdmin):
+    list_display = ['user', 'deck', 'card', 'last_rating', 'next_due_at']
+    list_filter = ['last_rating']
+    search_fields = ['user__username', 'deck__name', 'card__front_text']
+    readonly_fields = ['last_reviewed_at', 'next_due_at']
+
+
+@admin.register(StudyEvent)
+class StudyEventAdmin(admin.ModelAdmin):
+    list_display = ['user', 'deck', 'card', 'rating', 'duration_seconds', 'created_at']
+    list_filter = ['rating', 'created_at']
+    search_fields = ['user__username', 'deck__name', 'card__front_text']
+    readonly_fields = ['created_at']

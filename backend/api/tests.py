@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from .models import Deck, Card, StudySession, TestResult
+from .models import Deck, Card, CardReview, StudyEvent, StudySession, TestResult
 from django.utils import timezone
 
 class AuthTests(APITestCase):
@@ -249,3 +249,61 @@ class DeckListTests(APITestCase):
         self.assertEqual(deck.owner, self.user)
         self.assertNotEqual(deck.owner, self.other_user)
 
+
+class StudyQueueTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='studyuser', email='study@example.com', password='testpass123')
+        self.other_user = User.objects.create_user(username='otheruser', email='other@example.com', password='testpass123')
+        self.private_deck = Deck.objects.create(owner=self.user, name='Private Deck', visibility='private')
+        self.public_deck = Deck.objects.create(owner=self.user, name='Public Deck', visibility='public')
+
+        self.card1 = Card.objects.create(deck=self.private_deck, front_text='Front 1', back_text='Back 1')
+        self.card2 = Card.objects.create(deck=self.private_deck, front_text='Front 2', back_text='Back 2')
+
+    def test_private_deck_requires_owner(self):
+        url = reverse('deck_study_queue', args=[self.private_deck.id])
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_queue_returns_cards_for_owner(self):
+        url = reverse('deck_study_queue', args=[self.private_deck.id])
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total'], 2)
+        self.assertEqual(len(response.data['items']), 2)
+
+    def test_queue_public_deck_allows_other_user(self):
+        Card.objects.create(deck=self.public_deck, front_text='Front 3', back_text='Back 3')
+        url = reverse('deck_study_queue', args=[self.public_deck.id])
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total'], 1)
+
+
+class StudyAnswerTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='studyuser', email='study@example.com', password='testpass123')
+        self.deck = Deck.objects.create(owner=self.user, name='Study Deck', visibility='private')
+        self.card = Card.objects.create(deck=self.deck, front_text='Front 1', back_text='Back 1')
+
+    def test_answer_creates_review_and_event(self):
+        url = reverse('deck_study_answer', args=[self.deck.id])
+        self.client.force_authenticate(user=self.user)
+        payload = {
+            'cardId': self.card.id,
+            'rating': 'easy',
+            'elapsedSeconds': 12,
+        }
+        response = self.client.post(url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        review = CardReview.objects.get(user=self.user, card=self.card)
+        self.assertEqual(review.last_rating, 'easy')
+        self.assertIsNotNone(review.next_due_at)
+
+        event = StudyEvent.objects.get(user=self.user, card=self.card)
+        self.assertEqual(event.rating, 'easy')
+        self.assertEqual(event.duration_seconds, 12)
