@@ -125,6 +125,8 @@ class DeckDetailsSerializer(serializers.Serializer):
     name = serializers.CharField()
     description = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     visibility = serializers.ChoiceField(choices=Deck.VISIBILITY_CHOICES)
+    testShuffle = serializers.BooleanField()
+    testSequential = serializers.BooleanField()
     totalCards = serializers.IntegerField()
     participantsCount = serializers.IntegerField()
     totalStudySeconds = serializers.IntegerField()
@@ -152,3 +154,54 @@ class StudyAnswerSerializer(serializers.Serializer):
     cardId = serializers.IntegerField()
     rating = serializers.ChoiceField(choices=['again', 'hard', 'easy'])
     elapsedSeconds = serializers.IntegerField(required=False, min_value=0)
+
+
+class TestStartSerializer(serializers.Serializer):
+    mode = serializers.ChoiceField(choices=['shuffle', 'sequential'], required=False)
+
+
+class TestQuestionSerializer(serializers.Serializer):
+    cardId = serializers.IntegerField()
+    frontText = serializers.CharField()
+    backText = serializers.CharField()
+
+
+class TestStartResponseSerializer(serializers.Serializer):
+    attemptId = serializers.IntegerField()
+    mode = serializers.ChoiceField(choices=['shuffle', 'sequential'])
+    total = serializers.IntegerField()
+    questions = TestQuestionSerializer(many=True)
+
+
+class TestAnswerSerializer(serializers.Serializer):
+    attemptId = serializers.IntegerField()
+    cardId = serializers.IntegerField()
+    answerText = serializers.CharField(allow_blank=True)
+    elapsedSeconds = serializers.IntegerField(required=False, min_value=0)
+
+
+class TestAnswerResponseSerializer(serializers.Serializer):
+    isCorrect = serializers.BooleanField()
+    correctAnswer = serializers.CharField()
+
+
+class TestReviewItemSerializer(serializers.Serializer):
+    cardId = serializers.IntegerField()
+    frontText = serializers.CharField()
+    userAnswer = serializers.CharField()
+    correctAnswer = serializers.CharField()
+    isCorrect = serializers.BooleanField()
+
+
+class TestFinishSerializer(serializers.Serializer):
+    attemptId = serializers.IntegerField()
+
+
+class TestFinishResponseSerializer(serializers.Serializer):
+    attemptId = serializers.IntegerField()
+    scorePercent = serializers.FloatField()
+    correctCount = serializers.IntegerField()
+    total = serializers.IntegerField()
+    totalSeconds = serializers.IntegerField()
+    review = TestReviewItemSerializer(many=True)
+    leaderboard = LeaderboardEntrySerializer(many=True)

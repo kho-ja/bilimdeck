@@ -1,5 +1,15 @@
 from django.contrib import admin
-from .models import Deck, DeckParticipant, Card, CardReview, StudySession, StudyEvent, TestResult
+from .models import (
+    Deck,
+    DeckParticipant,
+    Card,
+    CardReview,
+    StudySession,
+    StudyEvent,
+    TestResult,
+    TestAttempt,
+    TestAnswer,
+)
 
 
 @admin.register(Deck)
@@ -39,6 +49,22 @@ class TestResultAdmin(admin.ModelAdmin):
     list_display = ['user', 'deck', 'score_percent', 'created_at']
     list_filter = ['created_at']
     search_fields = ['user__username', 'deck__name']
+    readonly_fields = ['created_at']
+
+
+@admin.register(TestAttempt)
+class TestAttemptAdmin(admin.ModelAdmin):
+    list_display = ['user', 'deck', 'mode', 'score_percent', 'started_at', 'finished_at']
+    list_filter = ['mode', 'started_at']
+    search_fields = ['user__username', 'deck__name']
+    readonly_fields = ['started_at', 'finished_at']
+
+
+@admin.register(TestAnswer)
+class TestAnswerAdmin(admin.ModelAdmin):
+    list_display = ['attempt', 'card', 'is_correct', 'elapsed_seconds', 'created_at']
+    list_filter = ['is_correct', 'created_at']
+    search_fields = ['attempt__user__username', 'card__front_text']
     readonly_fields = ['created_at']
 
 

@@ -23,6 +23,8 @@ export type DeckDetails = {
   name: string;
   description?: string | null;
   visibility: "public" | "private";
+  testShuffle?: boolean;
+  testSequential?: boolean;
   totalCards: number;
   participantsCount: number;
   totalStudySeconds: number;

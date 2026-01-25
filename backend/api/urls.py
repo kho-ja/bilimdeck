@@ -15,4 +15,7 @@ urlpatterns = [
     path('decks/<int:deck_id>/', views.DeckDetailView.as_view(), name='deck_detail'),
     path('decks/<int:deck_id>/study/queue/', views.DeckStudyQueueView.as_view(), name='deck_study_queue'),
     path('decks/<int:deck_id>/study/answer/', views.DeckStudyAnswerView.as_view(), name='deck_study_answer'),
+    path('decks/<int:deck_id>/test/start/', views.DeckTestStartView.as_view(), name='deck_test_start'),
+    path('decks/<int:deck_id>/test/answer/', views.DeckTestAnswerView.as_view(), name='deck_test_answer'),
+    path('decks/<int:deck_id>/test/finish/', views.DeckTestFinishView.as_view(), name='deck_test_finish'),
 ]

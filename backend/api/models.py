@@ -117,6 +117,47 @@ class TestResult(models.Model):
         return f"{self.user.username} - {self.deck.name}: {self.score_percent}%"
 
 
+TEST_MODE_CHOICES = [
+    ('shuffle', 'Shuffle'),
+    ('sequential', 'Sequential'),
+]
+
+
+class TestAttempt(models.Model):
+    """Track a single test attempt for a deck."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='test_attempts')
+    deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='test_attempts')
+    mode = models.CharField(max_length=20, choices=TEST_MODE_CHOICES)
+    total_questions = models.IntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    total_seconds = models.IntegerField(null=True, blank=True)
+    score_percent = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-started_at']
+
+    def __str__(self):
+        return f"{self.user.username} test {self.deck.name} ({self.mode})"
+
+
+class TestAnswer(models.Model):
+    """Store answers for a test attempt."""
+    attempt = models.ForeignKey(TestAttempt, on_delete=models.CASCADE, related_name='answers')
+    card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='test_answers')
+    answer_text = models.TextField(blank=True)
+    is_correct = models.BooleanField(default=False)
+    elapsed_seconds = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['created_at']
+        unique_together = ('attempt', 'card')
+
+    def __str__(self):
+        return f"{self.attempt.id} - {self.card.id}"
+
+
 class StudyEvent(models.Model):
     """Record a single study answer event."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='study_events')

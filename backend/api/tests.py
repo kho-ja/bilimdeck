@@ -2,7 +2,16 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from .models import Deck, Card, CardReview, StudyEvent, StudySession, TestResult
+from .models import (
+    Deck,
+    Card,
+    CardReview,
+    StudyEvent,
+    StudySession,
+    TestResult,
+    TestAttempt,
+    TestAnswer,
+)
 from django.utils import timezone
 
 class AuthTests(APITestCase):
@@ -307,3 +316,61 @@ class StudyAnswerTests(APITestCase):
         event = StudyEvent.objects.get(user=self.user, card=self.card)
         self.assertEqual(event.rating, 'easy')
         self.assertEqual(event.duration_seconds, 12)
+
+
+class TestModeTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='testpass123')
+        self.deck = Deck.objects.create(
+            owner=self.user,
+            name='Test Deck',
+            visibility='private',
+            test_shuffle=False,
+            test_sequential=True,
+        )
+        self.card1 = Card.objects.create(deck=self.deck, front_text='Front 1', back_text='Answer One')
+        self.card2 = Card.objects.create(deck=self.deck, front_text='Front 2', back_text='Answer Two')
+
+    def test_start_returns_questions_in_order(self):
+        url = reverse('deck_test_start', args=[self.deck.id])
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(url, {'mode': 'sequential'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['mode'], 'sequential')
+        self.assertEqual(response.data['total'], 2)
+        self.assertEqual(response.data['questions'][0]['cardId'], self.card1.id)
+        self.assertEqual(response.data['questions'][1]['cardId'], self.card2.id)
+
+    def test_answer_and_finish_flow(self):
+        start_url = reverse('deck_test_start', args=[self.deck.id])
+        answer_url = reverse('deck_test_answer', args=[self.deck.id])
+        finish_url = reverse('deck_test_finish', args=[self.deck.id])
+
+        self.client.force_authenticate(user=self.user)
+        start_response = self.client.post(start_url, {'mode': 'sequential'}, format='json')
+        attempt_id = start_response.data['attemptId']
+
+        response = self.client.post(answer_url, {
+            'attemptId': attempt_id,
+            'cardId': self.card1.id,
+            'answerText': ' answer one ',
+            'elapsedSeconds': 3,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['isCorrect'])
+
+        response = self.client.post(answer_url, {
+            'attemptId': attempt_id,
+            'cardId': self.card2.id,
+            'answerText': 'wrong',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['isCorrect'])
+
+        finish_response = self.client.post(finish_url, {'attemptId': attempt_id}, format='json')
+        self.assertEqual(finish_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(finish_response.data['correctCount'], 1)
+        self.assertEqual(finish_response.data['total'], 2)
+        self.assertEqual(finish_response.data['scorePercent'], 50.0)
+        self.assertEqual(len(finish_response.data['review']), 2)
+        self.assertGreaterEqual(len(finish_response.data['leaderboard']), 1)
