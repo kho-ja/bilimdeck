@@ -168,7 +168,10 @@ export default function EditDeckPage() {
       test_shuffle: deck.test_shuffle,
       test_sequential: deck.test_sequential,
       study_spaced_repetition: deck.study_spaced_repetition,
-      cards: deck.cards || [],
+      cards: (deck.cards || []).map((card) => ({
+        ...card,
+        color_tag: card.color_tag ?? "",
+      })),
     });
     setDeletedCardIds([]);
     setIsDirty(false);
