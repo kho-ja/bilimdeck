@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { apiClient } from "@/lib/api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { X, Plus, Save, ArrowLeft, Eye, Lock, Sparkles } from "lucide-react";
+import {
+  X,
+  Plus,
+  Save,
+  ArrowLeft,
+  Eye,
+  Lock,
+  Sparkles,
+  Undo2,
+} from "lucide-react";
+import type { DeckEdit } from "@/types/dashboard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 
-// Card color options
 const COLOR_OPTIONS = [
   {
     value: "blue",
@@ -54,11 +66,26 @@ const COLOR_OPTIONS = [
   },
 ];
 
-export default function NewDeckPage() {
+export default function EditDeckPage() {
   const t = useTranslations("newDeck");
   const router = useRouter();
+  const params = useParams();
+  const deckId = useMemo(() => {
+    const rawId = params?.id;
+    return Array.isArray(rawId) ? rawId[0] : rawId;
+  }, [params]);
   const queryClient = useQueryClient();
   const [isDirty, setIsDirty] = useState(false);
+  const [deletedCardIds, setDeletedCardIds] = useState<Array<string | number>>(
+    [],
+  );
+  const [removedCards, setRemovedCards] = useState<
+    Array<{
+      tempId: string;
+      index: number;
+      card: DeckFormData["cards"][number];
+    }>
+  >([]);
 
   const deckSchema = useMemo(
     () =>
@@ -73,6 +100,7 @@ export default function NewDeckPage() {
           cards: z
             .array(
               z.object({
+                id: z.union([z.string(), z.number()]).optional(),
                 front_text: z.string().min(1, t("frontTextRequired")),
                 back_text: z.string().min(1, t("backTextRequired")),
                 color_tag: z.string().optional(),
@@ -102,6 +130,7 @@ export default function NewDeckPage() {
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<DeckFormData>({
     resolver: zodResolver(deckSchema),
@@ -116,23 +145,55 @@ export default function NewDeckPage() {
     },
   });
 
+  const {
+    data: deck,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<DeckEdit>({
+    queryKey: ["deck-edit", deckId],
+    enabled: Boolean(deckId),
+    queryFn: async () => {
+      const response = await apiClient.get(`/decks/${deckId}/edit/`);
+      return response.data;
+    },
+  });
+
+  useEffect(() => {
+    if (!deck) return;
+    reset({
+      name: deck.name,
+      description: deck.description || "",
+      visibility: deck.visibility,
+      test_shuffle: deck.test_shuffle,
+      test_sequential: deck.test_sequential,
+      study_spaced_repetition: deck.study_spaced_repetition,
+      cards: deck.cards || [],
+    });
+    setDeletedCardIds([]);
+    setIsDirty(false);
+  }, [deck, reset]);
+
   const cards = watch("cards") || [];
   const visibility = watch("visibility");
   const testShuffle = watch("test_shuffle");
   const testSequential = watch("test_sequential");
   const studySpacedRepetition = watch("study_spaced_repetition");
 
-  // Create deck mutation
-  const createDeckMutation = useMutation({
+  const updateMutation = useMutation({
     mutationFn: async (data: DeckFormData) => {
-      const response = await apiClient.post("/decks/", data);
+      const response = await apiClient.put(`/decks/${deckId}/edit/`, {
+        ...data,
+        deletedCardIds,
+      });
       return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["decks"] });
+      queryClient.invalidateQueries({ queryKey: ["deck-details", deckId] });
       toast.success(t("deckCreatedSuccess"));
       setIsDirty(false);
-      router.push("/dashboard");
+      router.push(`/decks/${deckId}`);
     },
     onError: (error: any) => {
       const errorMessage =
@@ -142,7 +203,7 @@ export default function NewDeckPage() {
   });
 
   const onSubmit = (data: DeckFormData) => {
-    createDeckMutation.mutate(data);
+    updateMutation.mutate(data);
   };
 
   const addCard = () => {
@@ -154,8 +215,39 @@ export default function NewDeckPage() {
   };
 
   const removeCard = (index: number) => {
+    const cardToRemove = cards[index];
+    if (cardToRemove?.id) {
+      setDeletedCardIds((prev) => [
+        ...prev,
+        cardToRemove.id as string | number,
+      ]);
+    }
+    setRemovedCards((prev) => [
+      {
+        tempId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        index,
+        card: cardToRemove,
+      },
+      ...prev,
+    ]);
     const newCards = cards.filter((_, i) => i !== index);
     setValue("cards", newCards);
+    setIsDirty(true);
+  };
+
+  const undoRemoveCard = (tempId: string) => {
+    const removed = removedCards.find((item) => item.tempId === tempId);
+    if (!removed) return;
+
+    if (removed.card?.id) {
+      setDeletedCardIds((prev) => prev.filter((id) => id !== removed.card.id));
+    }
+
+    const nextCards = [...cards];
+    const insertIndex = Math.min(removed.index, nextCards.length);
+    nextCards.splice(insertIndex, 0, removed.card);
+    setValue("cards", nextCards);
+    setRemovedCards((prev) => prev.filter((item) => item.tempId !== tempId));
     setIsDirty(true);
   };
 
@@ -165,7 +257,7 @@ export default function NewDeckPage() {
     value: string,
   ) => {
     const newCards = [...cards];
-    newCards[index][field] = value;
+    newCards[index] = { ...newCards[index], [field]: value };
     setValue("cards", newCards);
     setIsDirty(true);
   };
@@ -173,12 +265,38 @@ export default function NewDeckPage() {
   const handleCancel = () => {
     if (isDirty) {
       if (confirm(t("confirmLeave"))) {
-        router.push("/dashboard");
+        router.push(`/decks/${deckId}`);
       }
     } else {
-      router.push("/dashboard");
+      router.push(`/decks/${deckId}`);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto w-full max-w-6xl space-y-6 px-6 py-8 sm:px-10 lg:px-12">
+        <Skeleton className="h-24 w-full rounded-3xl" />
+        <Skeleton className="h-10 w-64" />
+        <div className="grid gap-6 lg:grid-cols-[1fr_1.35fr]">
+          <Skeleton className="h-96 w-full rounded-3xl" />
+          <Skeleton className="h-96 w-full rounded-3xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title={t("errorTitle")}
+        description={t("errorMessage")}
+        retryLabel={t("retry")}
+        onRetry={() => refetch()}
+        actionLabel={t("backToDeck")}
+        onAction={() => router.push(`/decks/${deckId}`)}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-6 py-8 sm:px-10 lg:px-12">
@@ -187,13 +305,13 @@ export default function NewDeckPage() {
           <div className="flex flex-col gap-3">
             <div className="inline-flex w-fit items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5" />
-              {t("deckInfo")}
+              {t("editTitle")}
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                {t("title")}
+                {t("editTitle")}
               </h1>
-              <p className="text-muted-foreground">{t("subtitle")}</p>
+              <p className="text-muted-foreground">{t("editSubtitle")}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span>
@@ -209,17 +327,17 @@ export default function NewDeckPage() {
             <Button
               variant="outline"
               onClick={handleCancel}
-              disabled={createDeckMutation.isPending}
+              disabled={updateMutation.isPending}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t("cancel")}
             </Button>
             <Button
               onClick={handleSubmit(onSubmit)}
-              disabled={createDeckMutation.isPending}
+              disabled={updateMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              {createDeckMutation.isPending ? t("saving") : t("save")}
+              {updateMutation.isPending ? t("saving") : t("save")}
             </Button>
           </div>
         </div>
@@ -389,6 +507,32 @@ export default function NewDeckPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {removedCards.length > 0 && (
+                  <div className="rounded-2xl border border-dashed p-4">
+                    <p className="text-sm font-semibold">{t("removedCards")}</p>
+                    <div className="mt-3 flex flex-col gap-2">
+                      {removedCards.map((item) => (
+                        <div
+                          key={item.tempId}
+                          className="flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2 text-sm"
+                        >
+                          <span className="line-clamp-1">
+                            {item.card.front_text || t("cardRemoved")}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => undoRemoveCard(item.tempId)}
+                          >
+                            <Undo2 className="mr-2 h-4 w-4" />
+                            {t("undo")}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {cards.length === 0 ? (
                   <div className="rounded-2xl border border-dashed p-8 text-center text-muted-foreground">
                     <p>{t("noCards")}</p>

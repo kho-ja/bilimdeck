@@ -1,16 +1,23 @@
 import logging
 import random
 from rest_framework import permissions, views, generics
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from django.db.models import Count, Sum, Avg, Max, Q, F
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 from .serializers import (
     UserSerializer,
+    RegisterSerializer,
     DashboardSummarySerializer,
     DeckSerializer,
+    JoinedDeckSerializer,
+    PublicDeckSerializer,
     DeckCreateSerializer,
+    DeckEditSerializer,
+    DeckUpdateSerializer,
     DeckDetailsSerializer,
     StudyQueueResponseSerializer,
     StudyAnswerSerializer,
@@ -66,6 +73,23 @@ class MeView(views.APIView):
     def get(self, request, format=None):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+class RegisterView(views.APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request, format=None):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.create_user(
+            username=serializer.validated_data['username'],
+            password=serializer.validated_data['password'],
+            email=serializer.validated_data.get('email', ''),
+        )
+
+        response_serializer = UserSerializer(user)
+        return Response(response_serializer.data, status=201)
 
 
 class PingView(views.APIView):
@@ -139,6 +163,51 @@ class DeckListView(generics.ListCreateAPIView):
         serializer.save(owner=self.request.user)
 
 
+class PublicDeckListView(generics.ListAPIView):
+    """
+    List all public decks for exploration.
+    """
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = PublicDeckSerializer
+
+    class Pagination(PageNumberPagination):
+        page_size = 9
+        page_size_query_param = 'page_size'
+        max_page_size = 24
+
+    pagination_class = Pagination
+
+    def get_queryset(self):
+        queryset = Deck.objects.filter(visibility='public').select_related('owner').annotate(
+            card_count=Count('cards'),
+        )
+
+        query = self.request.query_params.get('q')
+        if query:
+            queryset = queryset.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(owner__username__icontains=query)
+            )
+
+        return queryset.order_by('-updated_at')
+
+
+class JoinedDeckListView(generics.ListAPIView):
+    """
+    List decks the user has joined.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = JoinedDeckSerializer
+
+    def get_queryset(self):
+        return Deck.objects.filter(participants__user=self.request.user).select_related('owner').annotate(
+            card_count=Count('cards'),
+            last_studied_at=Max('study_sessions__started_at', filter=Q(study_sessions__user=self.request.user)),
+            joined_at=Max('participants__joined_at', filter=Q(participants__user=self.request.user)),
+        ).order_by('-joined_at')
+
+
 class DeckDetailView(views.APIView):
     """
     Return deck details, stats, and leaderboard for a single deck.
@@ -201,6 +270,67 @@ class DeckDetailView(views.APIView):
         serializer = DeckDetailsSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
+
+    def delete(self, request, deck_id):
+        deck = get_object_or_404(Deck, pk=deck_id)
+        if deck.owner_id != request.user.id:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        deck.delete()
+        return Response(status=204)
+
+
+class DeckEditView(views.APIView):
+    """
+    Get or update a deck with its cards. Owner only.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, deck_id):
+        deck = get_object_or_404(Deck.objects.select_related('owner').prefetch_related('cards'), pk=deck_id)
+        if deck.owner_id != request.user.id:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        serializer = DeckEditSerializer(deck)
+        return Response(serializer.data)
+
+    def put(self, request, deck_id):
+        return self._update(request, deck_id, partial=False)
+
+    def patch(self, request, deck_id):
+        return self._update(request, deck_id, partial=True)
+
+    def _update(self, request, deck_id, partial: bool):
+        deck = get_object_or_404(Deck.objects.select_related('owner').prefetch_related('cards'), pk=deck_id)
+        if deck.owner_id != request.user.id:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        serializer = DeckUpdateSerializer(deck, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        cards_data = serializer.validated_data.pop('cards', None)
+        for field, value in serializer.validated_data.items():
+            setattr(deck, field, value)
+        deck.save()
+
+        if cards_data is not None:
+            existing_cards = {card.id: card for card in deck.cards.all()}
+            for card_payload in cards_data:
+                card_id = card_payload.pop('id', None)
+                if card_id and card_id in existing_cards:
+                    card = existing_cards[card_id]
+                    for field, value in card_payload.items():
+                        setattr(card, field, value)
+                    card.save()
+                else:
+                    Card.objects.create(deck=deck, **card_payload)
+
+        deleted_ids = request.data.get('deletedCardIds') or []
+        if deleted_ids:
+            deck.cards.filter(id__in=deleted_ids).delete()
+
+        response_serializer = DeckEditSerializer(deck)
+        return Response(response_serializer.data)
 
 
 class DeckStudyQueueView(views.APIView):

@@ -1,22 +1,43 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { useRouter, Link } from '@/i18n/navigation';
-import { apiClient } from '@/lib/api';
-import type { DeckDetails } from '@/types/dashboard';
-import { toast } from 'sonner';
+import { useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useRouter, Link } from "@/i18n/navigation";
+import { apiClient } from "@/lib/api";
+import type { DeckDetails } from "@/types/dashboard";
+import { toast } from "sonner";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ErrorState } from '@/components/ui/error-state';
-import { EmptyState } from '@/components/ui/empty-state';
-import { ArrowLeft, BookOpen, Clock, Layers, Pencil, Share2, Trophy, Users } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import {
+  ArrowLeft,
+  BookOpen,
+  Clock,
+  Layers,
+  Pencil,
+  Share2,
+  Trophy,
+  Users,
+} from "lucide-react";
 
-const formatDuration = (seconds: number, hoursLabel: string, minutesLabel: string, secondsLabel: string) => {
+const formatDuration = (
+  seconds: number,
+  hoursLabel: string,
+  minutesLabel: string,
+  secondsLabel: string,
+) => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
@@ -31,9 +52,12 @@ const formatDuration = (seconds: number, hoursLabel: string, minutesLabel: strin
 };
 
 export default function DeckDetailsPage() {
-  const t = useTranslations('deckDetails');
+  const t = useTranslations("deckDetails");
   const router = useRouter();
   const params = useParams();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
   const deckId = useMemo(() => {
     const rawId = params?.id;
     return Array.isArray(rawId) ? rawId[0] : rawId;
@@ -45,7 +69,7 @@ export default function DeckDetailsPage() {
     error,
     refetch,
   } = useQuery<DeckDetails>({
-    queryKey: ['deck-details', deckId],
+    queryKey: ["deck-details", deckId],
     enabled: Boolean(deckId),
     queryFn: async () => {
       const response = await apiClient.get(`/decks/${deckId}/`);
@@ -53,15 +77,42 @@ export default function DeckDetailsPage() {
     },
   });
 
-  const errorStatus = (error as { response?: { status?: number } })?.response?.status;
+  const errorStatus = (error as { response?: { status?: number } })?.response
+    ?.status;
 
   const handleShare = async () => {
     if (!deck) return;
     try {
       await navigator.clipboard.writeText(window.location.href);
-      toast.success(t('shareCopied'));
+      toast.success(t("shareCopied"));
     } catch {
-      toast.error(t('shareFailed'));
+      toast.error(t("shareFailed"));
+    }
+  };
+
+  const isDeleteMatch = Boolean(deck && deleteInput.trim() === deck.name);
+
+  const resetDeleteConfirm = () => {
+    setShowDeleteConfirm(false);
+    setDeleteInput("");
+  };
+
+  const handleDelete = async () => {
+    if (!deck || isDeleting) return;
+    if (!isDeleteMatch) {
+      toast.error(t("deleteMatchError"));
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await apiClient.delete(`/decks/${deck.id}/`);
+      toast.success(t("deleteSuccess"));
+      router.push("/dashboard");
+    } catch {
+      toast.error(t("deleteError"));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -97,10 +148,10 @@ export default function DeckDetailsPage() {
   if (errorStatus === 403) {
     return (
       <ErrorState
-        title={t('accessDeniedTitle')}
-        description={t('accessDeniedMessage')}
-        actionLabel={t('backToDashboard')}
-        onAction={() => router.push('/dashboard')}
+        title={t("accessDeniedTitle")}
+        description={t("accessDeniedMessage")}
+        actionLabel={t("backToDashboard")}
+        onAction={() => router.push("/dashboard")}
       />
     );
   }
@@ -108,10 +159,10 @@ export default function DeckDetailsPage() {
   if (errorStatus === 404) {
     return (
       <ErrorState
-        title={t('notFoundTitle')}
-        description={t('notFoundMessage')}
-        actionLabel={t('backToDashboard')}
-        onAction={() => router.push('/dashboard')}
+        title={t("notFoundTitle")}
+        description={t("notFoundMessage")}
+        actionLabel={t("backToDashboard")}
+        onAction={() => router.push("/dashboard")}
       />
     );
   }
@@ -119,12 +170,12 @@ export default function DeckDetailsPage() {
   if (error) {
     return (
       <ErrorState
-        title={t('errorTitle')}
-        description={t('errorMessage')}
-        retryLabel={t('retry')}
+        title={t("errorTitle")}
+        description={t("errorMessage")}
+        retryLabel={t("retry")}
         onRetry={() => refetch()}
-        actionLabel={t('backToDashboard')}
-        onAction={() => router.push('/dashboard')}
+        actionLabel={t("backToDashboard")}
+        onAction={() => router.push("/dashboard")}
       />
     );
   }
@@ -134,55 +185,108 @@ export default function DeckDetailsPage() {
   }
 
   const visibilityClasses =
-    deck.visibility === 'public'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-      : 'border-amber-200 bg-amber-50 text-amber-800';
+    deck.visibility === "public"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : "border-amber-200 bg-amber-50 text-amber-800";
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4">
-        <Button variant="ghost" className="w-fit px-0" onClick={() => router.push('/dashboard')}>
+        <Button
+          variant="ghost"
+          className="w-fit px-0"
+          onClick={() => router.push("/dashboard")}
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('backToDashboard')}
+          {t("backToDashboard")}
         </Button>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold tracking-tight">{deck.name}</h1>
-              <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${visibilityClasses}`}>
-                {deck.visibility === 'public' ? t('public') : t('private')}
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${visibilityClasses}`}
+              >
+                {deck.visibility === "public" ? t("public") : t("private")}
               </span>
             </div>
             {deck.description && (
-              <p className="text-sm text-muted-foreground">{deck.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {deck.description}
+              </p>
             )}
           </div>
           {deck.isOwner && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/decks/${deck.id}/edit`)}
+              >
                 <Pencil className="mr-2 h-4 w-4" />
-                {t('editDeck')}
+                {t("editDeck")}
               </Button>
-              {deck.visibility === 'public' && (
+              {deck.visibility === "public" && (
                 <Button variant="outline" onClick={handleShare}>
                   <Share2 className="mr-2 h-4 w-4" />
-                  {t('share')}
+                  {t("share")}
                 </Button>
               )}
             </div>
           )}
         </div>
+        {deck.isOwner && showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div
+              className="w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-deck-title"
+            >
+              <div className="space-y-1">
+                <h2 id="delete-deck-title" className="text-lg font-semibold">
+                  {t("deleteDeck")}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {t("deletePrompt", { name: deck.name })}
+                </p>
+              </div>
+              <div className="mt-4 space-y-3">
+                <Input
+                  value={deleteInput}
+                  onChange={(event) => setDeleteInput(event.target.value)}
+                  placeholder={t("deletePlaceholder")}
+                />
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={resetDeleteConfirm}
+                    disabled={isDeleting}
+                  >
+                    {t("deleteCancel")}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={!isDeleteMatch || isDeleting}
+                  >
+                    {isDeleting ? t("deleting") : t("deleteConfirmAction")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button asChild size="lg" className="flex-1">
             <Link href={`/decks/${deck.id}/study`}>
               <BookOpen className="mr-2 h-4 w-4" />
-              {t('startStudy')}
+              {t("startStudy")}
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="flex-1">
             <Link href={`/decks/${deck.id}/test`}>
               <Trophy className="mr-2 h-4 w-4" />
-              {t('startTest')}
+              {t("startTest")}
             </Link>
           </Button>
         </div>
@@ -192,7 +296,7 @@ export default function DeckDetailsPage() {
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('totalCards')}
+              {t("totalCards")}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4 text-muted-foreground" />
@@ -203,23 +307,30 @@ export default function DeckDetailsPage() {
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('participants')}
+              {t("participants")}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-semibold">{deck.participantsCount}</span>
+              <span className="text-2xl font-semibold">
+                {deck.participantsCount}
+              </span>
             </div>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('totalStudyTime')}
+              {t("totalStudyTime")}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-2xl font-semibold">
-                {formatDuration(deck.totalStudySeconds, t('hours'), t('minutes'), t('seconds'))}
+                {formatDuration(
+                  deck.totalStudySeconds,
+                  t("hours"),
+                  t("minutes"),
+                  t("seconds"),
+                )}
               </span>
             </div>
           </CardHeader>
@@ -229,14 +340,14 @@ export default function DeckDetailsPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>{t('leaderboardTitle')}</CardTitle>
-            <CardDescription>{t('leaderboardDesc')}</CardDescription>
+            <CardTitle>{t("leaderboardTitle")}</CardTitle>
+            <CardDescription>{t("leaderboardDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {deck.leaderboard.length === 0 ? (
               <EmptyState
-                title={t('leaderboardEmpty')}
-                description={t('leaderboardDesc')}
+                title={t("leaderboardEmpty")}
+                description={t("leaderboardDesc")}
                 variant="plain"
               />
             ) : (
@@ -244,18 +355,23 @@ export default function DeckDetailsPage() {
                 <table className="w-full text-sm">
                   <thead className="border-b text-left text-muted-foreground">
                     <tr>
-                      <th className="py-2 pr-4">{t('rank')}</th>
-                      <th className="py-2 pr-4">{t('user')}</th>
-                      <th className="py-2 pr-4">{t('score')}</th>
-                      <th className="py-2">{t('date')}</th>
+                      <th className="py-2 pr-4">{t("rank")}</th>
+                      <th className="py-2 pr-4">{t("user")}</th>
+                      <th className="py-2 pr-4">{t("score")}</th>
+                      <th className="py-2">{t("date")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {deck.leaderboard.map((entry) => (
-                      <tr key={`${entry.userDisplayName}-${entry.rank}`} className="border-b last:border-0">
+                      <tr
+                        key={`${entry.userDisplayName}-${entry.rank}`}
+                        className="border-b last:border-0"
+                      >
                         <td className="py-2 pr-4 font-medium">{entry.rank}</td>
                         <td className="py-2 pr-4">{entry.userDisplayName}</td>
-                        <td className="py-2 pr-4">{entry.scorePercent.toFixed(1)}%</td>
+                        <td className="py-2 pr-4">
+                          {entry.scorePercent.toFixed(1)}%
+                        </td>
                         <td className="py-2">
                           {new Date(entry.createdAt).toLocaleDateString()}
                         </td>
@@ -270,47 +386,82 @@ export default function DeckDetailsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('activityTitle')}</CardTitle>
-            <CardDescription>{t('activityDesc')}</CardDescription>
+            <CardTitle>{t("activityTitle")}</CardTitle>
+            <CardDescription>{t("activityDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="rounded-lg border bg-muted/40 p-3">
-              <p className="text-xs uppercase text-muted-foreground">{t('totalLearnerTime')}</p>
+              <p className="text-xs uppercase text-muted-foreground">
+                {t("totalLearnerTime")}
+              </p>
               <p className="text-lg font-semibold">
-                {formatDuration(deck.totalStudySeconds, t('hours'), t('minutes'), t('seconds'))}
+                {formatDuration(
+                  deck.totalStudySeconds,
+                  t("hours"),
+                  t("minutes"),
+                  t("seconds"),
+                )}
               </p>
             </div>
-            <p className="text-sm text-muted-foreground">{t('activityHint')}</p>
+            <p className="text-sm text-muted-foreground">{t("activityHint")}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('cardsPreviewTitle')}</CardTitle>
-          <CardDescription>{t('cardsPreviewDesc')}</CardDescription>
+          <CardTitle>{t("cardsPreviewTitle")}</CardTitle>
+          <CardDescription>{t("cardsPreviewDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {deck.cardsPreview && deck.cardsPreview.length > 0 ? (
             <div className="space-y-3">
               {deck.cardsPreview.map((card) => (
-                <div key={card.id} className="rounded-lg border bg-muted/30 p-3">
+                <div
+                  key={card.id}
+                  className="rounded-lg border bg-muted/30 p-3"
+                >
                   <p className="text-sm font-medium">{card.frontText}</p>
                   {card.colorTag && (
-                    <p className="text-xs text-muted-foreground">{t('colorTag', { color: card.colorTag })}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("colorTag", { color: card.colorTag })}
+                    </p>
                   )}
                 </div>
               ))}
             </div>
           ) : (
             <EmptyState
-              title={t('noCards')}
-              description={t('cardsPreviewDesc')}
+              title={t("noCards")}
+              description={t("cardsPreviewDesc")}
               variant="plain"
             />
           )}
         </CardContent>
       </Card>
+
+      {deck.isOwner && (
+        <Card className="border-destructive/40">
+          <CardHeader>
+            <CardTitle className="text-destructive">
+              {t("dangerZoneTitle")}
+            </CardTitle>
+            <CardDescription>{t("dangerZoneDesc")}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {t("dangerZoneHint")}
+            </p>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isDeleting}
+            >
+              {t("deleteDeck")}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

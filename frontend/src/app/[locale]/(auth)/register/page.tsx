@@ -1,10 +1,10 @@
-import { LoginForm } from "@/components/auth/LoginForm";
+import { RegisterForm } from "@/components/auth/RegisterForm";
 import { Link } from "@/i18n/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const t = useTranslations("auth");
 
   return (
@@ -20,14 +20,14 @@ export default function LoginPage() {
           <ArrowLeft className="h-4 w-4" />
           {t("backToHome")}
         </Link>
-        <LoginForm />
+        <RegisterForm />
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          {t("noAccount")}{" "}
+          {t("haveAccount")}{" "}
           <Link
-            href="/register"
+            href="/login"
             className="text-foreground underline underline-offset-4"
           >
-            {t("registerButton")}
+            {t("loginButton")}
           </Link>
         </p>
       </div>

@@ -150,8 +150,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const localeMatch = pathname.match(/^\/(en|uz|ja)(\/|$)/);
       const locale = localeMatch ? localeMatch[1] : "en"; // Default to 'en' if no locale found
 
-      // Check if we are on a login page (e.g., /en/login, /login)
-      const isAuthPage = pathname.includes("/login");
+      // Check if we are on an auth page (e.g., /en/login, /login, /en/register)
+      const isAuthPage =
+        pathname.includes("/login") || pathname.includes("/register");
 
       // Check if we are on a protected route
       const isProtectedRoute =
@@ -180,7 +181,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!isLoggedIn) {
           // If not logged in and on protected route, redirect to login with correct locale
           const signInUrl = new URL(`${localePrefix}/login`, request.nextUrl);
-          signInUrl.searchParams.set("returnTo", request.nextUrl.pathname + request.nextUrl.search);
+          signInUrl.searchParams.set(
+            "returnTo",
+            request.nextUrl.pathname + request.nextUrl.search,
+          );
           return Response.redirect(signInUrl);
         }
         return true; // Allow access if logged in

@@ -78,6 +78,10 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -119,4 +123,130 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@keyframes carousel-slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.carousel-track {
+  animation: carousel-slide 36s linear infinite;
+}
+
+.carousel-track.reverse {
+  animation-direction: reverse;
+  animation-duration: 44s;
+}
+
+.fade-up {
+  opacity: 0;
+  animation: fade-up 0.7s ease forwards;
+}
+
+.fade-up.delay-1 {
+  animation-delay: 0.15s;
+}
+
+.fade-up.delay-2 {
+  animation-delay: 0.3s;
+}
+
+.fade-up.delay-3 {
+  animation-delay: 0.45s;
+}
+
+.fade-up.delay-4 {
+  animation-delay: 0.6s;
+}
+
+.study-card {
+  position: relative;
+  height: 20rem;
+  width: 100%;
+  border-radius: 1.5rem;
+  border-width: 1px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.75), transparent 55%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.06), rgba(148, 163, 184, 0.08));
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+  perspective: 1200px;
+}
+
+.dark .study-card {
+  background:
+    radial-gradient(circle at top, rgba(148, 163, 184, 0.08), transparent 55%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.2));
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.study-card-inner {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border-radius: 1.5rem;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.study-card.is-flipped .study-card-inner {
+  transform: rotateY(180deg) scale(1.01);
+}
+
+.study-card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  text-align: center;
+  backface-visibility: hidden;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease,
+    filter 0.45s ease;
+  filter: blur(0px);
+}
+
+.study-card-front {
+  opacity: 1;
+  transform: translateZ(0);
+}
+
+.study-card-back {
+  opacity: 0;
+  transform: rotateY(180deg) translateZ(0);
+}
+
+.study-card.is-flipped .study-card-front {
+  opacity: 0;
+  transform: translateZ(0) scale(0.98);
+  filter: blur(1px);
+}
+
+.study-card.is-flipped .study-card-back {
+  opacity: 1;
+  transform: rotateY(180deg) scale(1.01);
+  filter: blur(0px);
+}
+
+.study-card-back {
+  transform: rotateY(180deg);
 }

@@ -1,29 +1,29 @@
-'use client';
+"use client";
 
-import { useSession } from "next-auth/react"
-import { UserNav } from '@/components/auth/UserNav';
-import { ThemeToggle } from '@/components/theme-toggle';
-import { LanguageSwitcher } from '@/components/language-switcher';
-import { Link } from '@/i18n/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useTranslations } from 'next-intl';
+import { useSession } from "next-auth/react";
+import { UserNav } from "@/components/auth/UserNav";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { Link } from "@/i18n/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslations } from "next-intl";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession()
-  const tNav = useTranslations('nav')
-  const tCommon = useTranslations('common')
+  const { data: session, status } = useSession();
+  const tNav = useTranslations("nav");
+  const tCommon = useTranslations("common");
 
   // Middleware handles redirects, so we just show loading state
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto flex h-14 items-center justify-between px-4">
-            <Skeleton className="h-6 w-24" />
+        <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6 sm:px-10 lg:px-12">
+            <Skeleton className="h-9 w-32" />
             <Skeleton className="h-10 w-10 rounded-full" />
           </div>
         </header>
-        <main className="flex-1 container mx-auto py-6 px-4">
+        <main className="flex-1 mx-auto w-full max-w-6xl py-6 px-6 sm:px-10 lg:px-12">
           <div className="space-y-4">
             <Skeleton className="h-8 w-48" />
             <div className="grid gap-4 md:grid-cols-3">
@@ -43,15 +43,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-14 items-center justify-between px-4">
+      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6 sm:px-10 lg:px-12">
           <div className="flex items-center gap-6">
-            <Link href="/" className="font-bold text-lg hover:text-primary transition-colors">
-              {tCommon('appName')}
+            <Link
+              href="/"
+              className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em] text-foreground"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-200 via-orange-200 to-rose-200 text-xs font-semibold text-foreground shadow-sm dark:from-amber-400/30 dark:via-orange-400/20 dark:to-rose-400/30">
+                BD
+              </span>
+              <span>{tCommon("appName")}</span>
             </Link>
-            <nav className="flex items-center gap-4 text-sm">
-              <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-                {tNav('dashboard')}
+            <nav className="hidden items-center gap-4 text-sm text-muted-foreground md:flex">
+              <Link
+                href="/dashboard"
+                className="hover:text-foreground transition-colors"
+              >
+                {tNav("dashboard")}
+              </Link>
+              <Link
+                href="/explore"
+                className="hover:text-foreground transition-colors"
+              >
+                {tNav("explore")}
               </Link>
             </nav>
           </div>
@@ -62,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="flex-1 container mx-auto py-6 px-4">
+      <main className="flex-1 mx-auto w-full max-w-6xl py-6 px-6 sm:px-10 lg:px-12">
         {children}
       </main>
     </div>

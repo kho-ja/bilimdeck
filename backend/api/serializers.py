@@ -25,6 +25,17 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
+class RegisterSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError('Username is already taken.')
+        return value
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -37,6 +48,14 @@ class CardSerializer(serializers.ModelSerializer):
         model = Card
         fields = ['id', 'front_text', 'back_text', 'color_tag', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class CardEditSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = Card
+        fields = ['id', 'front_text', 'back_text', 'color_tag']
 
 
 class DeckSerializer(serializers.ModelSerializer):
@@ -55,6 +74,36 @@ class DeckSerializer(serializers.ModelSerializer):
         if len(value.strip()) < 3:
             raise serializers.ValidationError("Deck name must be at least 3 characters long.")
         return value.strip()
+
+
+class JoinedDeckSerializer(serializers.ModelSerializer):
+    totalCards = serializers.IntegerField(source='card_count', read_only=True)
+    lastStudiedAt = serializers.DateTimeField(source='last_studied_at', read_only=True, allow_null=True)
+    joinedAt = serializers.DateTimeField(source='joined_at', read_only=True, allow_null=True)
+    ownerDisplayName = serializers.CharField(source='owner.username', read_only=True)
+
+    class Meta:
+        model = Deck
+        fields = ['id', 'name', 'totalCards', 'visibility', 'lastStudiedAt', 'joinedAt', 'ownerDisplayName', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class PublicDeckSerializer(serializers.ModelSerializer):
+    totalCards = serializers.IntegerField(source='card_count', read_only=True)
+    ownerDisplayName = serializers.CharField(source='owner.username', read_only=True)
+    isParticipant = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Deck
+        fields = ['id', 'name', 'description', 'visibility', 'totalCards', 'ownerDisplayName', 'isParticipant', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+    def get_isParticipant(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+        return obj.participants.filter(user=user).exists()
 
 
 class DeckCreateSerializer(serializers.ModelSerializer):
@@ -99,6 +148,42 @@ class DeckCreateSerializer(serializers.ModelSerializer):
             Card.objects.create(deck=deck, **card_data)
         
         return deck
+
+
+class DeckEditSerializer(serializers.ModelSerializer):
+    cards = CardEditSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Deck
+        fields = [
+            'id', 'name', 'description', 'visibility',
+            'test_shuffle', 'test_sequential', 'study_spaced_repetition',
+            'cards', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class DeckUpdateSerializer(serializers.ModelSerializer):
+    cards = CardEditSerializer(many=True, required=False)
+
+    class Meta:
+        model = Deck
+        fields = [
+            'name', 'description', 'visibility',
+            'test_shuffle', 'test_sequential', 'study_spaced_repetition',
+            'cards'
+        ]
+
+    def validate(self, attrs):
+        test_sequential = attrs.get('test_sequential', self.instance.test_sequential if self.instance else False)
+        test_shuffle = attrs.get('test_shuffle', self.instance.test_shuffle if self.instance else True)
+
+        if test_sequential and test_shuffle:
+            raise serializers.ValidationError({
+                'test_shuffle': 'Shuffle must be OFF when Sequential is ON.'
+            })
+
+        return attrs
 
 
 class DashboardSummarySerializer(serializers.Serializer):
