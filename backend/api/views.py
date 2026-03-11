@@ -3,7 +3,7 @@ import random
 from rest_framework import permissions, views, generics
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from django.db.models import Count, Sum, Avg, Max, Q, F
+from django.db.models import Count, Sum, Avg, Max, Q, F, Case, When, Value, IntegerField
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -29,6 +29,12 @@ from .serializers import (
     TestAnswerResponseSerializer,
     TestFinishSerializer,
     TestFinishResponseSerializer,
+    PublicDeckSearchRequestSerializer,
+    PublicDeckSearchResponseSerializer,
+    AiCreateDeckRequestSerializer,
+    AiCreateDeckResponseSerializer,
+    AiOpenDeckRequestSerializer,
+    AiOpenDeckResponseSerializer,
 )
 from .models import (
     Deck,
@@ -773,3 +779,140 @@ class DeckParticipationSummaryView(views.APIView):
         serializer = ParticipationSummarySerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
+
+
+class PublicDeckSearchView(views.APIView):
+    """Search public decks with simple rank ordering."""
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request):
+        request_serializer = PublicDeckSearchRequestSerializer(data=request.query_params)
+        request_serializer.is_valid(raise_exception=True)
+
+        query = (request_serializer.validated_data.get('q') or '').strip()
+        limit = request_serializer.validated_data.get('limit', 10)
+
+        queryset = Deck.objects.filter(visibility='public').select_related('owner').annotate(
+            card_count=Count('cards'),
+        )
+
+        if query:
+            queryset = queryset.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(owner__username__icontains=query)
+            ).annotate(
+                score=Case(
+                    When(name__icontains=query, then=Value(3)),
+                    When(description__icontains=query, then=Value(2)),
+                    When(owner__username__icontains=query, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ).order_by('-score', '-updated_at')
+        else:
+            queryset = queryset.order_by('-updated_at')
+
+        items = list(queryset[:limit])
+        data = {
+            'query': query,
+            'count': len(items),
+            'results': [
+                {
+                    'id': deck.id,
+                    'name': deck.name,
+                    'description': deck.description,
+                    'ownerDisplayName': deck.owner.username,
+                    'totalCards': getattr(deck, 'card_count', 0),
+                    'route': f'/decks/{deck.id}',
+                }
+                for deck in items
+            ],
+        }
+
+        response_serializer = PublicDeckSearchResponseSerializer(data=data)
+        response_serializer.is_valid(raise_exception=True)
+        return Response(response_serializer.data)
+
+
+class AiDeckCreateFromStructuredView(views.APIView):
+    """Create a deck from AI structured payload."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        serializer = AiCreateDeckRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+
+        deck = Deck.objects.create(
+            owner=request.user,
+            name=payload['name'].strip(),
+            description=payload.get('description'),
+            visibility=payload.get('visibility', 'private'),
+        )
+
+        cards = [
+            Card(
+                deck=deck,
+                front_text=card['frontText'].strip(),
+                back_text=card['backText'].strip(),
+                color_tag=card.get('colorTag'),
+            )
+            for card in payload['cards']
+        ]
+        Card.objects.bulk_create(cards)
+
+        response_payload = {
+            'id': deck.id,
+            'name': deck.name,
+            'visibility': deck.visibility,
+            'totalCards': len(cards),
+            'route': f'/decks/{deck.id}',
+        }
+        response_serializer = AiCreateDeckResponseSerializer(data=response_payload)
+        response_serializer.is_valid(raise_exception=True)
+        return Response(response_serializer.data, status=201)
+
+
+class AiDeckOpenTargetView(views.APIView):
+    """Resolve a deck route by deck id or search query with permission checks."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        serializer = AiOpenDeckRequestSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        deck = None
+        deck_id = serializer.validated_data.get('deckId')
+        query = (serializer.validated_data.get('query') or '').strip()
+
+        if deck_id:
+            deck = get_object_or_404(Deck.objects.select_related('owner'), pk=deck_id)
+        elif query:
+            owned_match = Deck.objects.filter(owner=request.user, name__icontains=query).order_by('-updated_at').first()
+            if owned_match:
+                deck = owned_match
+            else:
+                deck = Deck.objects.filter(visibility='public').filter(
+                    Q(name__icontains=query) | Q(description__icontains=query)
+                ).order_by('-updated_at').first()
+
+        if not deck:
+            return Response({'detail': 'Deck not found.'}, status=404)
+
+        can_access = (deck.visibility == 'public') or (deck.owner_id == request.user.id)
+        if not can_access:
+            return Response({'detail': 'Access denied.'}, status=403)
+
+        payload = {
+            'deckId': deck.id,
+            'route': f'/decks/{deck.id}',
+            'canAccess': can_access,
+        }
+        response_serializer = AiOpenDeckResponseSerializer(data=payload)
+        response_serializer.is_valid(raise_exception=True)
+        return Response(response_serializer.data)
+
+
+
+

@@ -52,19 +52,19 @@ BilimDeck/
 2. Activate the virtual environment (optional):
 
    ```powershell
-   .\.venv\Scripts\Activate.ps1
+   (not needed with uv run)
    ```
 
 3. Run migrations:
 
    ```powershell
-   uv run -p .venv python manage.py migrate
+   uv run python manage.py migrate
    ```
 
 4. Start the Django development server:
 
    ```powershell
-   uv run -p .venv python manage.py runserver
+   uv run python manage.py runserver
    ```
 
    The API will be available at `http://localhost:8000`
@@ -139,7 +139,7 @@ Run Django tests:
 
 ```powershell
 cd backend
-uv run -p .venv python manage.py test
+uv run python manage.py test
 ```
 
 ## Known Limitations / TODO
@@ -155,10 +155,10 @@ uv run -p .venv python manage.py test
 
 ```powershell
 # Make migrations
-uv run -p .venv python manage.py makemigrations
+uv run python manage.py makemigrations
 
 # Create superuser
-uv run -p .venv python manage.py createsuperuser
+uv run python manage.py createsuperuser
 ```
 
 ### Frontend
@@ -170,3 +170,32 @@ npm run build
 # Start production server
 npm start
 ```
+
+## Local Development (Updated)
+
+### Backend (uv)
+
+```powershell
+cd backend
+uv run python manage.py migrate
+uv run python manage.py runserver
+```
+
+### Frontend (npm)
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+### Database (Supabase Postgres)
+
+Configure in `backend/.env`:
+
+```env
+SUPABASE_DB_URL=postgresql://postgres:[PASSWORD]@[PROJECT-REF].supabase.co:5432/postgres?sslmode=require
+```
+
+`DATABASE_URL` is still accepted as fallback.
+

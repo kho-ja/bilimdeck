@@ -14,6 +14,7 @@ urlpatterns = [
     path('dashboard/summary/', views.DashboardSummaryView.as_view(), name='dashboard_summary'),
     path('decks/', views.DeckListView.as_view(), name='deck_list'),
     path('decks/public/', views.PublicDeckListView.as_view(), name='deck_public_list'),
+    path('decks/public/search/', views.PublicDeckSearchView.as_view(), name='deck_public_search'),
     path('decks/joined/', views.JoinedDeckListView.as_view(), name='deck_joined_list'),
     path('decks/<int:deck_id>/', views.DeckDetailView.as_view(), name='deck_detail'),
     path('decks/<int:deck_id>/edit/', views.DeckEditView.as_view(), name='deck_edit'),
@@ -24,4 +25,7 @@ urlpatterns = [
     path('decks/<int:deck_id>/test/finish/', views.DeckTestFinishView.as_view(), name='deck_test_finish'),
     path('decks/<int:deck_id>/participation/join/', views.DeckParticipationJoinView.as_view(), name='deck_participation_join'),
     path('decks/<int:deck_id>/participation/summary/', views.DeckParticipationSummaryView.as_view(), name='deck_participation_summary'),
+    path('ai/decks/create-from-structured/', views.AiDeckCreateFromStructuredView.as_view(), name='ai_deck_create_from_structured'),
+    path('ai/decks/open-target/', views.AiDeckOpenTargetView.as_view(), name='ai_deck_open_target'),
 ]
+

@@ -86,7 +86,8 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+USE_SQLITE = os.environ.get('USE_SQLITE', 'False') == 'True'
+DATABASE_URL = None if USE_SQLITE else (os.environ.get('SUPABASE_DB_URL') or os.environ.get('DATABASE_URL'))
 if DATABASE_URL:
     # Use DATABASE_URL for managed Postgres (Supabase/Render/etc.)
     DATABASES = {
@@ -210,3 +211,4 @@ CSRF_COOKIE_HTTPONLY = False  # False so frontend can read it if needed, or True
 
 SESSION_COOKIE_HTTPONLY = True
 # CSRF_COOKIE_HTTPONLY = False # Default
+

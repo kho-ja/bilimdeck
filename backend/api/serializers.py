@@ -317,3 +317,59 @@ class TestFinishResponseSerializer(serializers.Serializer):
     totalSeconds = serializers.IntegerField()
     review = TestReviewItemSerializer(many=True)
     leaderboard = LeaderboardEntrySerializer(many=True)
+
+class PublicDeckSearchRequestSerializer(serializers.Serializer):
+    q = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=25, default=10)
+
+
+class PublicDeckSearchResultSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    description = serializers.CharField(allow_blank=True, allow_null=True, required=False)
+    ownerDisplayName = serializers.CharField()
+    totalCards = serializers.IntegerField()
+    route = serializers.CharField()
+
+
+class PublicDeckSearchResponseSerializer(serializers.Serializer):
+    query = serializers.CharField(allow_blank=True)
+    count = serializers.IntegerField()
+    results = PublicDeckSearchResultSerializer(many=True)
+
+
+class AiCreateCardSerializer(serializers.Serializer):
+    frontText = serializers.CharField(max_length=1000)
+    backText = serializers.CharField(max_length=1000)
+    colorTag = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=50)
+
+
+class AiCreateDeckRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(min_length=3, max_length=200)
+    description = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=2000)
+    visibility = serializers.ChoiceField(choices=Deck.VISIBILITY_CHOICES, required=False, default='private')
+    cards = AiCreateCardSerializer(many=True, min_length=1, max_length=100)
+
+
+class AiCreateDeckResponseSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    visibility = serializers.ChoiceField(choices=Deck.VISIBILITY_CHOICES)
+    totalCards = serializers.IntegerField()
+    route = serializers.CharField()
+
+
+class AiOpenDeckRequestSerializer(serializers.Serializer):
+    deckId = serializers.IntegerField(required=False)
+    query = serializers.CharField(required=False, allow_blank=True, max_length=200)
+
+    def validate(self, attrs):
+        if not attrs.get('deckId') and not (attrs.get('query') or '').strip():
+            raise serializers.ValidationError('Provide either deckId or query.')
+        return attrs
+
+
+class AiOpenDeckResponseSerializer(serializers.Serializer):
+    deckId = serializers.IntegerField()
+    route = serializers.CharField()
+    canAccess = serializers.BooleanField()

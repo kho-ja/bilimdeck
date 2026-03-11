@@ -425,3 +425,48 @@ class ParticipationTests(APITestCase):
         self.assertEqual(response.data['totalStudySecondsAll'], 120)
         self.assertEqual(response.data['totalTestAttemptsAll'], 1)
         self.assertEqual(response.data['ranking'][0]['bestScorePercent'], 88.5)
+
+class AiEndpointsTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username='owner_ai', password='pass12345')
+        self.viewer = User.objects.create_user(username='viewer_ai', password='pass12345')
+        self.private_deck = Deck.objects.create(owner=self.owner, name='Private Biology', visibility='private')
+        self.public_deck = Deck.objects.create(owner=self.owner, name='Public Biology', description='Cells and DNA', visibility='public')
+        Card.objects.create(deck=self.public_deck, front_text='Q1', back_text='A1')
+
+    def test_public_search_only_returns_public(self):
+        url = reverse('deck_public_search')
+        response = self.client.get(url, {'q': 'Biology'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.public_deck.id)
+
+    def test_ai_create_from_structured_requires_auth(self):
+        url = reverse('ai_deck_create_from_structured')
+        payload = {
+            'name': 'AI Deck',
+            'visibility': 'private',
+            'cards': [
+                {'frontText': 'Front', 'backText': 'Back'}
+            ]
+        }
+        unauth = self.client.post(url, payload, format='json')
+        self.assertIn(unauth.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+        self.client.force_authenticate(user=self.viewer)
+        response = self.client.post(url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        created = Deck.objects.get(id=response.data['id'])
+        self.assertEqual(created.owner_id, self.viewer.id)
+        self.assertEqual(created.cards.count(), 1)
+
+    def test_ai_open_target_permissions(self):
+        url = reverse('ai_deck_open_target')
+        self.client.force_authenticate(user=self.viewer)
+
+        allowed = self.client.get(url, {'deckId': self.public_deck.id})
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+        self.assertEqual(allowed.data['route'], f'/decks/{self.public_deck.id}')
+
+        denied = self.client.get(url, {'deckId': self.private_deck.id})
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
