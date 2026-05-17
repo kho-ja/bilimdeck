@@ -4,9 +4,9 @@ asgiref==3.11.1
     # via
     #   django
     #   django-cors-headers
-dj-database-url==3.1.2
+dj-database-url==3.1.0
     # via -r requirements.in
-django==6.0.5
+django==5.2.14
     # via
     #   -r requirements.in
     #   dj-database-url
@@ -15,27 +15,29 @@ django==6.0.5
     #   djangorestframework-simplejwt
 django-cors-headers==4.9.0
     # via -r requirements.in
-djangorestframework==3.17.1
+djangorestframework==3.16.1
     # via
     #   -r requirements.in
     #   djangorestframework-simplejwt
 djangorestframework-simplejwt==5.5.1
     # via -r requirements.in
-gunicorn==26.0.0
+gunicorn==23.0.0
     # via -r requirements.in
 packaging==26.2
     # via gunicorn
-psycopg==3.3.4
+psycopg==3.3.2
     # via -r requirements.in
-psycopg-binary==3.3.4
+psycopg-binary==3.3.2
     # via psycopg
 pyjwt==2.12.1
-    # via djangorestframework-simplejwt
+    # via
+    #   -r requirements.in
+    #   djangorestframework-simplejwt
 python-dotenv==1.2.2
     # via -r requirements.in
 sqlparse==0.5.5
     # via django
 typing-extensions==4.15.0
     # via psycopg
-whitenoise==6.12.0
+whitenoise==6.11.0
     # via -r requirements.in
